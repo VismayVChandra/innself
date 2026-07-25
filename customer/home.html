@@ -1,4 +1,4 @@
-<!doctype html>
+<!-- <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8">
@@ -108,4 +108,453 @@ import{
  loading(false)
 })()
 </script>
-</body></html>
+</body></html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Innself — Home</title>
+  <link rel="stylesheet" href="../styles.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
+  <style>
+    .search-bar {
+      margin: 10px 14px 0;
+      background: var(--card);
+      border-radius: 10px;
+      padding: 10px 13px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      border: 0.5px solid var(--border);
+    }
+    .search-bar input {
+      border: none;
+      background: transparent;
+      outline: none;
+      flex: 1;
+      font-size: 13px;
+      padding: 0;
+      color: var(--text);
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 14px 8px;
+    }
+    .section-title { font-size: 13px; font-weight: 500; }
+    .active-job-banner {
+      margin: 10px 14px 0;
+      background: var(--teal-l);
+      border: 0.5px solid var(--teal);
+      border-radius: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      display: none;
+    }
+    .active-job-banner:hover { opacity: .92; }
+    .job-card {
+      background: var(--card);
+      border-radius: 10px;
+      border: 0.5px solid var(--border);
+      padding: 12px 13px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+    .job-card:hover { border-color: var(--teal); }
+    .job-card-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+    .job-card-meta { font-size: 11px; color: var(--muted); }
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .empty-state i { font-size: 44px; color: var(--hint); display: block; margin-bottom: 10px; }
+    .empty-state p { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+    .notif-dot {
+      width: 8px; height: 8px;
+      background: var(--red);
+      border-radius: 50%;
+      position: absolute; top: 0; right: 0;
+      border: 2px solid var(--bg);
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading"><div class="spinner"></div></div>
+
+<!-- Toast messages -->
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  PAGE                                        -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="page">
+
+  <!-- ── Top bar ── -->
+  <div class="topbar">
+    <div style="flex:1">
+      <div style="font-size:11px;color:var(--muted)" id="greeting-label">Good day,</div>
+      <div style="font-size:16px;font-weight:500" id="user-name">...</div>
+    </div>
+    <div style="position:relative;cursor:pointer" onclick="openNotifs()">
+      <i class="ti ti-bell" style="font-size:22px;color:var(--muted)"></i>
+      <div class="notif-dot" id="notif-dot"></div>
+    </div>
+  </div>
+
+  <!-- ── Search bar ── -->
+  <div class="search-bar">
+    <i class="ti ti-search" style="font-size:16px;color:var(--muted)"></i>
+    <input
+      type="text"
+      placeholder="e.g. AC repair, plumber, electrician..."
+      id="search-input"
+      oninput="filterJobs(this.value)"
+    />
+    <i class="ti ti-x" id="search-clear" style="font-size:15px;color:var(--muted);cursor:pointer;display:none" onclick="clearSearch()"></i>
+  </div>
+
+  <!-- ── Active job banner (only shows when a job is in progress) ── -->
+  <div class="active-job-banner" id="active-banner" onclick="goToActiveJob()">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--teal-d)" id="banner-title">Active job</div>
+        <div style="font-size:11px;color:var(--teal-d);margin-top:2px" id="banner-status">Waiting for bids</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="badge badge-teal" id="banner-badge">Track →</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Category grid ── -->
+  <div class="section-header">
+    <div class="section-title">What do you need done?</div>
+  </div>
+  <div class="grid4" style="padding:0 14px" id="cat-grid">
+    <!-- Filled by JavaScript -->
+  </div>
+
+  <!-- ── Job history ── -->
+  <div class="section-header">
+    <div class="section-title">Your jobs</div>
+    <button
+      class="btn btn-primary btn-sm"
+      onclick="go('/customer/post-job.html')"
+      style="display:flex;align-items:center;gap:5px"
+    >
+      <i class="ti ti-plus"></i> Post job
+    </button>
+  </div>
+
+  <!-- Filter tabs for jobs -->
+  <div style="display:flex;gap:7px;padding:0 14px 10px;overflow-x:auto">
+    <button class="badge badge-teal" id="filter-all" onclick="setFilter('all')" style="padding:5px 12px;cursor:pointer;white-space:nowrap">All</button>
+    <button class="badge badge-gray" id="filter-active" onclick="setFilter('active')" style="padding:5px 12px;cursor:pointer;white-space:nowrap">Active</button>
+    <button class="badge badge-gray" id="filter-done" onclick="setFilter('done')" style="padding:5px 12px;cursor:pointer;white-space:nowrap">Completed</button>
+    <button class="badge badge-gray" id="filter-cancelled" onclick="setFilter('cancelled')" style="padding:5px 12px;cursor:pointer;white-space:nowrap">Cancelled</button>
+  </div>
+
+  <!-- Jobs list -->
+  <div style="padding:0 14px 14px" id="jobs-list">
+    <p style="color:var(--muted)">Loading your jobs...</p>
+  </div>
+
+</div><!-- end .page -->
+
+<!-- ── Bottom navigation ── -->
+<nav class="bottom-nav">
+  <button class="nav-item active">
+    <i class="ti ti-home"></i>Home
+  </button>
+  <button class="nav-item" onclick="go('/customer/post-job.html')">
+    <i class="ti ti-plus-circle"></i>Post job
+  </button>
+  <button class="nav-item">
+    <i class="ti ti-message"></i>Chat
+  </button>
+  <button class="nav-item" onclick="go('/customer/profile.html')">
+    <i class="ti ti-user"></i>Profile
+  </button>
+</nav>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  JAVASCRIPT — all Supabase calls here        -->
+<!-- ═══════════════════════════════════════════ -->
+<script type="module">
+
+import {
+  requireAuth,
+  getMyJobs,
+  signOut,
+  toast,
+  loading,
+  fmtMoney
+} from '../supabase.js'
+
+// ── Globals ──────────────────────────────────────────────────
+const go = url => window.location.href = url
+window.go = go
+window.signOut = signOut
+
+let allJobs = []          // full jobs list from Supabase
+let activeJobUrl = '/'    // where the active-banner tap goes
+let currentFilter = 'all' // which filter tab is active
+
+// ── Category definitions ──────────────────────────────────────
+const CATEGORIES = [
+  { icon: 'ti-plug',           label: 'Electrical',  value: 'electrical'      },
+  { icon: 'ti-droplet',        label: 'Plumbing',    value: 'plumbing'        },
+  { icon: 'ti-wind',           label: 'AC & HVAC',   value: 'hvac'            },
+  { icon: 'ti-hammer',         label: 'Carpentry',   value: 'carpentry'       },
+  { icon: 'ti-brush',          label: 'Painting',    value: 'painting'        },
+  { icon: 'ti-sparkles',       label: 'Cleaning',    value: 'cleaning'        },
+  { icon: 'ti-bug',            label: 'Pest',        value: 'pest_control'    },
+  { icon: 'ti-device-laptop',  label: 'IT Repair',   value: 'it_repair'       },
+]
+
+// Status → badge colour mapping
+const STATUS_COLOUR = {
+  open:        'gray',
+  assigned:    'purple',
+  en_route:    'amber',
+  in_progress: 'amber',
+  completed:   'teal',
+  confirmed:   'green',
+  disputed:    'red',
+  cancelled:   'gray',
+  expired:     'gray',
+}
+
+// Which statuses count as "active"
+const ACTIVE_STATUSES = ['open', 'assigned', 'en_route', 'in_progress']
+const DONE_STATUSES   = ['completed', 'confirmed']
+const CANCEL_STATUSES = ['cancelled', 'expired', 'disputed']
+
+// ── Greeting label ────────────────────────────────────────────
+function getGreeting() {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning,'
+  if (h < 17) return 'Good afternoon,'
+  return 'Good evening,'
+}
+
+// ── Build the category grid ───────────────────────────────────
+function buildCategoryGrid() {
+  document.getElementById('cat-grid').innerHTML = CATEGORIES.map(c => `
+    <div class="cat-tile" onclick="go('/customer/post-job.html?cat=${c.value}')" title="${c.label}">
+      <i class="ti ${c.icon}"></i>
+      <span>${c.label}</span>
+    </div>
+  `).join('')
+}
+
+// ── Active job banner ─────────────────────────────────────────
+function showActiveBanner(job) {
+  const banner = document.getElementById('active-banner')
+  banner.style.display = 'block'
+
+  document.getElementById('banner-title').textContent = job.title
+
+  const statusLabels = {
+    open:        'Waiting for bids',
+    assigned:    'Technician assigned',
+    en_route:    'Technician on the way',
+    in_progress: 'Work in progress',
+  }
+  document.getElementById('banner-status').textContent =
+    statusLabels[job.status] || job.status.replace(/_/g, ' ')
+
+  const badgeLabels = {
+    open:        'View bids →',
+    assigned:    'Track →',
+    en_route:    'Track →',
+    in_progress: 'Track →',
+  }
+  document.getElementById('banner-badge').textContent =
+    badgeLabels[job.status] || 'View →'
+
+  // Where the banner tap goes
+  activeJobUrl = job.status === 'open'
+    ? `/customer/bids.html?job=${job.id}`
+    : `/customer/tracking.html?job=${job.id}`
+}
+
+window.goToActiveJob = () => go(activeJobUrl)
+
+// ── Filter tabs ───────────────────────────────────────────────
+window.setFilter = function(filter) {
+  currentFilter = filter
+  ;['all', 'active', 'done', 'cancelled'].forEach(f => {
+    const el = document.getElementById('filter-' + f)
+    el.className = 'badge ' + (f === filter ? 'badge-teal' : 'badge-gray')
+    el.style.padding = '5px 12px'
+    el.style.cursor  = 'pointer'
+    el.style.whiteSpace = 'nowrap'
+  })
+  renderJobs(allJobs)
+}
+
+// ── Search ────────────────────────────────────────────────────
+window.filterJobs = function(q) {
+  document.getElementById('search-clear').style.display = q ? 'block' : 'none'
+  const lower = q.toLowerCase()
+  const filtered = allJobs.filter(j =>
+    j.title.toLowerCase().includes(lower) ||
+    j.category.toLowerCase().includes(lower) ||
+    (j.location_address || '').toLowerCase().includes(lower)
+  )
+  renderJobs(filtered, q)
+}
+
+window.clearSearch = function() {
+  document.getElementById('search-input').value = ''
+  document.getElementById('search-clear').style.display = 'none'
+  renderJobs(allJobs)
+}
+
+// ── Render job cards ──────────────────────────────────────────
+function applyFilter(jobs) {
+  if (currentFilter === 'active')    return jobs.filter(j => ACTIVE_STATUSES.includes(j.status))
+  if (currentFilter === 'done')      return jobs.filter(j => DONE_STATUSES.includes(j.status))
+  if (currentFilter === 'cancelled') return jobs.filter(j => CANCEL_STATUSES.includes(j.status))
+  return jobs
+}
+
+function renderJobs(jobs, searchQuery = '') {
+  const filtered = applyFilter(jobs)
+  const el = document.getElementById('jobs-list')
+
+  if (!filtered.length) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <i class="ti ti-file-off"></i>
+        <p>${
+          searchQuery
+            ? `No jobs found for "${searchQuery}"`
+            : currentFilter !== 'all'
+              ? 'No ${currentFilter} jobs'
+              : 'You have not posted any jobs yet'
+        }</p>
+        <button
+          class="btn btn-primary"
+          style="width:auto;padding:10px 26px;margin:0 auto"
+          onclick="go('/customer/post-job.html')"
+        >
+          Post your first job
+        </button>
+      </div>`
+    return
+  }
+
+  el.innerHTML = filtered.map(job => {
+    const colour = STATUS_COLOUR[job.status] || 'gray'
+    const dest   = job.status === 'open'
+      ? `/customer/bids.html?job=${job.id}`
+      : `/customer/tracking.html?job=${job.id}`
+
+    // Bid count indicator for open jobs
+    const bidHint = job.status === 'open'
+      ? `<span style="font-size:11px;color:var(--muted)">
+           <i class="ti ti-coin" style="font-size:11px"></i>
+           Waiting for bids
+         </span>`
+      : ''
+
+    // Budget display
+    const budgetStr = job.budget_min || job.budget_max
+      ? `<span class="badge badge-gray" style="margin-top:4px">${fmtMoney(job.budget_min)} – ${fmtMoney(job.budget_max)}</span>`
+      : ''
+
+    return `
+      <div class="job-card" onclick="go('${dest}')">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div class="job-card-title">${job.title}</div>
+            <div class="job-card-meta">
+              <i class="ti ti-category" style="font-size:11px"></i>
+              ${job.category.replace(/_/g,' ')}
+              &nbsp;·&nbsp;
+              <i class="ti ti-map-pin" style="font-size:11px"></i>
+              ${job.location_address || '—'}
+            </div>
+            ${budgetStr}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+            <span class="badge badge-${colour}">${job.status.replace(/_/g,' ')}</span>
+            ${job.is_urgent ? '<span class="badge badge-red" style="font-size:9px">Urgent</span>' : ''}
+          </div>
+        </div>
+        <div style="margin-top:6px;display:flex;align-items:center;justify-content:space-between">
+          ${bidHint}
+          <div style="font-size:10px;color:var(--hint);margin-left:auto">
+            ${timeAgo(job.created_at)}
+          </div>
+        </div>
+      </div>`
+  }).join('')
+}
+
+// ── Utility: relative time ────────────────────────────────────
+function timeAgo(dateStr) {
+  const s = Math.floor((Date.now() - new Date(dateStr)) / 1000)
+  if (s < 60)     return 'just now'
+  if (s < 3600)   return Math.floor(s / 60)   + 'm ago'
+  if (s < 86400)  return Math.floor(s / 3600)  + 'h ago'
+  return Math.floor(s / 86400) + 'd ago'
+}
+
+// ── Notification bell ─────────────────────────────────────────
+window.openNotifs = function() {
+  // For MVP: just show unread count in toast
+  // Later: navigate to /customer/notifications.html
+  toast('Notifications coming soon', 'info')
+}
+
+// ── Main: run on page load ────────────────────────────────────
+;(async () => {
+
+  // 1. Check auth — redirect to login if not signed in
+  const user = await requireAuth(['customer'])
+  if (!user) return   // requireAuth handles redirect
+
+  // 2. Set greeting
+  document.getElementById('greeting-label').textContent = getGreeting()
+  document.getElementById('user-name').textContent = user.name || 'there ✦'
+
+  // 3. Build category tiles
+  buildCategoryGrid()
+
+  // 4. Load jobs
+  loading(true)
+  try {
+    allJobs = await getMyJobs()
+
+    // Show active job banner if one exists
+    const activeJob = allJobs.find(j => ACTIVE_STATUSES.includes(j.status))
+    if (activeJob) showActiveBanner(activeJob)
+
+    // Render job list
+    renderJobs(allJobs)
+
+    // Show notification dot if any jobs have new bids
+    // (just a visual cue — extend later with a proper notif query)
+    const hasOpenWithBids = allJobs.some(j => j.status === 'open')
+    document.getElementById('notif-dot').style.display = hasOpenWithBids ? 'block' : 'none'
+
+  } catch (err) {
+    toast(err.message, 'error')
+  }
+  loading(false)
+
+})()
+
+</script>
+</body>
+</html>
