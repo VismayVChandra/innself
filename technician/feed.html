@@ -30,7 +30,16 @@
     <script type="module">
       import { requireAuth, getOpenJobs, toast, loading, timeAgo, fmtMoney } from '../supabase.js'
 
-      const categories = ['all', 'Plumbing', 'Electrical', 'Cleaning', 'Appliances', 'Painting', 'Carpentry', 'AC service']
+      const categories = [
+        { value: 'all', label: 'All jobs' },
+        { value: 'plumbing', label: 'Plumbing' },
+        { value: 'electrical', label: 'Electrical' },
+        { value: 'cleaning', label: 'Cleaning' },
+        { value: 'appliance_repair', label: 'Appliances' },
+        { value: 'painting', label: 'Painting' },
+        { value: 'carpentry', label: 'Carpentry' },
+        { value: 'ac_repair', label: 'AC service' }
+      ]
       let selectedCategory = 'all'
       const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -38,8 +47,8 @@
 
       function renderFilters() {
         document.getElementById('filters').innerHTML = categories.map(category => `
-          <button class="btn btn-sm ${category === selectedCategory ? 'btn-primary' : 'btn-secondary'}" onclick="pickCategory('${category}')">
-            ${category === 'all' ? 'All jobs' : category}
+          <button class="btn btn-sm ${category.value === selectedCategory ? 'btn-primary' : 'btn-secondary'}" onclick="pickCategory('${category.value}')">
+            ${category.label}
           </button>
         `).join('')
       }

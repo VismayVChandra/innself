@@ -67,14 +67,14 @@ import{
  requireAuth,getMyJobs,toast,loading,timeAgo
 }
  from'../supabase.js';
- const categories=[['Plumbing','ti-tool'],['Electrical','ti-bolt'],['Cleaning','ti-sparkles'],['Appliances','ti-washing-machine'],['Painting','ti-paint'],['Carpentry','ti-hammer'],['AC service','ti-snowflake'],['More','ti-dots']];
+ const categories=[['plumbing','Plumbing','ti-tool'],['electrical','Electrical','ti-bolt'],['cleaning','Cleaning','ti-sparkles'],['appliance_repair','Appliances','ti-washing-machine'],['painting','Painting','ti-paint'],['carpentry','Carpentry','ti-hammer'],['ac_repair','AC service','ti-snowflake'],['other','More','ti-dots']];
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({
  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
 }
  [c]));
 ;
  window.go=url=>location.href=url;
- document.getElementById('categories').innerHTML=categories.map(([name,icon])=>`<button class="cat-tile" onclick="go('/customer/post-job.html?category=${encodeURIComponent(name)}')"><i class="ti ${ icon } "></i><span>${name}</span></button>`).join('');
+ document.getElementById('categories').innerHTML=categories.map(([value,name,icon])=>`<button class="cat-tile" onclick="go('/customer/post-job.html?category=${encodeURIComponent(value)}')"><i class="ti ${ icon } "></i><span>${name}</span></button>`).join('');
  const statusClass=s=>({
  open:'teal',assigned:'amber',in_progress:'purple',completed:'green',cancelled:'red'
 }

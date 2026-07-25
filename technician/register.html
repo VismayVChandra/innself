@@ -45,12 +45,21 @@
     <script type="module">
       import { requireAuth, registerTechnician, toast, loading } from '../supabase.js'
 
-      const services = ['Plumbing', 'Electrical', 'Cleaning', 'Appliances', 'Painting', 'Carpentry', 'AC service']
+      // Values must match the service_category enum in Supabase.
+      const services = [
+        { value: 'plumbing', label: 'Plumbing' },
+        { value: 'electrical', label: 'Electrical' },
+        { value: 'cleaning', label: 'Cleaning' },
+        { value: 'appliance_repair', label: 'Appliances' },
+        { value: 'painting', label: 'Painting' },
+        { value: 'carpentry', label: 'Carpentry' },
+        { value: 'ac_repair', label: 'AC service' }
+      ]
       const categoryBox = document.getElementById('categories')
       categoryBox.innerHTML = services.map(service => `
         <label class="cat-tile" style="text-align:left">
-          <input type="checkbox" value="${service}" style="width:auto;margin-right:7px">
-          <span>${service}</span>
+          <input type="checkbox" value="${service.value}" style="width:auto;margin-right:7px">
+          <span>${service.label}</span>
         </label>
       `).join('')
 
