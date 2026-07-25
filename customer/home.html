@@ -1,45 +1,111 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Innself — Home</title>
-<link rel="stylesheet" href="../styles.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
-</head><body>
-
-<div id="loading"><div class="spinner"></div></div>
-<div id="toast"></div>
-
-<div class="page">
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
-    <span class="topbar-title">Home</span>
-    <div style="width:28px"></div>
-  </div>
-
-  <div id="content" style="padding:12px">Loading...</div>
-</div>
-
-<nav class="bottom-nav">
-  <button class="nav-item active"><i class="ti ti-home"></i>Home</button>
-  <button class="nav-item" onclick="go('/customer/jobs.html')"><i class="ti ti-file-text"></i>Jobs</button>
-  <button class="nav-item" onclick="go('/customer/chat.html')"><i class="ti ti-message"></i>Chat</button>
-  <button class="nav-item" onclick="go('/customer/profile.html')"><i class="ti ti-user"></i>Profile</button>
-</nav>
-
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Innself — Home</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  </head>
+  <body>
+    <div id="loading">
+      <div class="spinner">
+      </div>
+    </div>
+    <div id="toast">
+    </div>
+    <main class="page">
+      <header class="topbar">
+        <div>
+          <span class="topbar-title">Innself</span>
+          <p id="greeting">Find help for your home</p>
+        </div>
+        <button class="back-btn" onclick="go('/')" aria-label="Account">
+          <i class="ti ti-user-circle">
+          </i>
+        </button>
+      </header>
+      <section style="padding:16px 12px 0">
+        <div class="card" style="background:linear-gradient(135deg,#0d3d2e,#1a1a1a)">
+          <div class="row-between">
+            <div>
+              <h2>What needs fixing?</h2>
+              <p>Post a job and receive bids from local professionals.</p>
+            </div>
+            <i class="ti ti-tools" style="font-size:34px;color:var(--teal-d)">
+            </i>
+          </div>
+          <button class="btn btn-primary" style="margin-top:14px" onclick="go('/customer/post-job.html')">Post a job</button>
+        </div>
+        <h2 style="margin:18px 2px 10px">Browse services</h2>
+        <div class="grid4" id="categories">
+        </div>
+        <div class="row-between" style="margin:22px 2px 10px">
+          <h2>Your jobs</h2>
+          <button class="btn btn-sm btn-secondary" onclick="loadJobs()">Refresh</button>
+        </div>
+        <div id="jobs">
+        </div>
+      </section>
+    </main>
+    <nav class="bottom-nav">
+      <button class="nav-item active">
+        <i class="ti ti-home">
+        </i>Home</button>
+        <button class="nav-item" onclick="go('/customer/post-job.html')">
+          <i class="ti ti-plus">
+          </i>Post</button>
+          <button class="nav-item" onclick="toast('Messaging is coming soon')">
+            <i class="ti ti-message">
+            </i>Chat</button>
+            <button class="nav-item" onclick="go('/')">
+              <i class="ti ti-user">
+              </i>Profile</button>
+            </nav>
 <script type="module">
-import{requireAuth,toast,loading}from'../supabase.js'
-function go(url){window.location.href=url}
-window.go=go
-
-;(async()=>{
-  const user=await requireAuth(['customer'])
-  if(!user)return
-  loading(true)
-  try{
-    // load home dashboard
-  }catch(e){toast(e.message,'error')}
-  loading(false)
+import{
+ requireAuth,getMyJobs,toast,loading,timeAgo
+}
+ from'../supabase.js';
+ const categories=[['Plumbing','ti-tool'],['Electrical','ti-bolt'],['Cleaning','ti-sparkles'],['Appliances','ti-washing-machine'],['Painting','ti-paint'],['Carpentry','ti-hammer'],['AC service','ti-snowflake'],['More','ti-dots']];
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({
+ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}
+ [c]));
+;
+ window.go=url=>location.href=url;
+ document.getElementById('categories').innerHTML=categories.map(([name,icon])=>`<button class="cat-tile" onclick="go('/customer/post-job.html?category=${encodeURIComponent(name)}')"><i class="ti ${ icon } "></i><span>${name}</span></button>`).join('');
+ const statusClass=s=>({
+ open:'teal',assigned:'amber',in_progress:'purple',completed:'green',cancelled:'red'
+}
+ [s]||'gray');
+;
+ window.loadJobs=async()=>{
+ const box=document.getElementById('jobs');
+ box.innerHTML='<p>Loading your jobs…</p>';
+ try{
+ const jobs=await getMyJobs();
+ if(!jobs.length){
+ box.innerHTML='<div class="card" style="text-align:center"><i class="ti ti-clipboard-plus" style="font-size:30px; color:var(--teal)"></i><h3 style="margin-top:8px">No jobs yet</h3><p>Your posted jobs will appear here.</p></div>';
+ return
+    }
+ box.innerHTML=jobs.slice(0,5).map(j=>`<button class="card" style="width:100%; text-align:left; cursor:pointer" onclick="openJob('${j.id}','${j.status}')"><div class="row-between"><h3>${esc(j.title)}</h3><span class="badge badge-${ statusClass(j.status) } ">${esc((j.status||'open').replace('_',' '))}</span></div><p>${esc(j.category)} · ${timeAgo(j.created_at)}</p><div class="divider"></div><p>${j.status==='open'?'Compare incoming bids':j.status==='completed'?'Leave a review or view job':'View job progress'} <i class="ti ti-chevron-right"></i></p></button>`).join('')
+  }
+ catch(e){
+ box.innerHTML='<p>Could not load jobs.</p>';
+ toast(e.message,'error')
+  }
+};
+;
+ window.openJob=(id,status)=>go(`/customer/${status==='open'?'bids':'tracking'}.html?job=${encodeURIComponent(id)}`) ;
+ (async()=>{
+ const user=await requireAuth(['customer']);
+ if(!user)return;
+  ;
+ document.getElementById('greeting').textContent=`Hello, ${user.name?.split(' ')[0]||'there'} · what can we help with?`;
+ loading(true);
+ await loadJobs();
+ loading(false)
 })()
 </script>
 </body></html>

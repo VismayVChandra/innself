@@ -1,45 +1,99 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Innself — Review</title>
-<link rel="stylesheet" href="../styles.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
-</head><body>
-
-<div id="loading"><div class="spinner"></div></div>
-<div id="toast"></div>
-
-<div class="page">
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
-    <span class="topbar-title">Review</span>
-    <div style="width:28px"></div>
-  </div>
-
-  <div id="content" style="padding:12px">Loading...</div>
-</div>
-
-<nav class="bottom-nav">
-  <button class="nav-item" onclick="go('/customer/home.html')"><i class="ti ti-home"></i>Home</button>
-  <button class="nav-item active"><i class="ti ti-file-text"></i>Jobs</button>
-  <button class="nav-item" onclick="go('/customer/chat.html')"><i class="ti ti-message"></i>Chat</button>
-  <button class="nav-item" onclick="go('/customer/profile.html')"><i class="ti ti-user"></i>Profile</button>
-</nav>
-
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Innself — Review your technician</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  </head>
+  <body>
+    <div id="loading">
+      <div class="spinner">
+      </div>
+    </div>
+    <div id="toast">
+    </div>
+    <main class="page">
+      <header class="topbar">
+        <button class="back-btn" onclick="go('/customer/home.html')">
+          <i class="ti ti-arrow-left">
+          </i>
+        </button>
+        <span class="topbar-title">Leave a review</span>
+        <div style="width:28px">
+        </div>
+      </header>
+      <section style="padding:16px 12px">
+        <div id="job">
+        </div>
+        <form id="review-form" class="card">
+          <h2>How was the service?</h2>
+          <p>Your review helps other customers choose confidently.</p>
+          <div id="stars" style="display:flex;justify-content:center;gap:7px;margin:24px 0">
+          </div>
+          <input id="rating" type="hidden" value="0">
+          <label class="label">Share your experience (optional)</label>
+          <textarea id="comment" maxlength="600" placeholder="Was the technician punctual, professional and helpful?">
+          </textarea>
+          <button class="btn btn-primary" type="submit" style="margin-top:16px">Submit review</button>
+          <button class="btn btn-secondary" type="button" style="margin-top:8px" onclick="go('/customer/home.html')">Skip for now</button>
+        </form>
+      </section>
+    </main>
 <script type="module">
-import{requireAuth,toast,loading}from'../supabase.js'
-function go(url){window.location.href=url}
-window.go=go
-
-;(async()=>{
-  const user=await requireAuth(['customer'])
-  if(!user)return
-  loading(true)
-  try{
-    // review technician after job completion
-  }catch(e){toast(e.message,'error')}
-  loading(false)
+import{
+ requireAuth,getJobById,submitReview,toast,loading
+}
+ from'../supabase.js';
+ const id=new URLSearchParams(location.search).get('job');
+;
+ window.go=u=>location.href=u;
+ let selected=0;
+ const stars=document.getElementById('stars');
+ function draw(){
+ stars.innerHTML=[1,2,3,4,5].map(n=>`<button type="button" aria-label="${n} stars" onclick="pick(${n})" style="background:none;border:none;cursor:pointer;color:${n<=selected?'#EF9F27':'var(--hint)'};font-size:34px">★</button>`).join('')
+};
+;
+ window.pick=n=>{
+ selected=n;
+  ;
+ document.getElementById('rating').value=n;
+ draw()
+};
+ draw();
+;
+ document.getElementById('review-form').addEventListener('submit',async e=>{
+ e.preventDefault();
+ if(!selected){
+ toast('Choose a star rating first','error');
+ return
+  }
+ loading(true);
+ try{
+ await submitReview(id,selected,document.getElementById('comment').value.trim());
+ toast('Thank you for your review!','success');
+ setTimeout(()=>go('/customer/home.html'),600)
+  }
+ catch(err){
+ toast(err.message,'error')
+  }
+ loading(false)
+});
+ (async()=>{
+ if(!id)return go('/customer/home.html');
+ const user=await requireAuth(['customer']);
+ if(!user)return;
+ loading(true);
+ try{
+ const j=await getJobById(id);
+    ;
+ document.getElementById('job').innerHTML=`<div class="card"><p class="label">COMPLETED JOB</p><h2>${String(j.title||'').replace(/</g,'&lt;')}</h2><p>Tell us about your experience.</p></div>`
+  }
+ catch(e){
+ toast(e.message,'error')
+  }
+ loading(false)
 })()
 </script>
 </body></html>

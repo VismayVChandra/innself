@@ -1,27 +1,114 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Innself — Tracking</title>
-<link rel="stylesheet" href="../styles.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
-</head><body>
-
-<div id="loading"><div class="spinner"></div></div>
-<div id="toast"></div>
-
-<div class="page">
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
-    <span class="topbar-title">Tracking</span>
-    <div style="width:28px"></div>
-  </div>
-
-  <div id="content" style="padding:12px">Loading...</div>
-</div>
-
-<nav class="bottom-nav">
-  <button class="nav-item" onclick="go('/customer/home.html')"><i class="ti ti-home"></i>Home</button>
-  <button class="nav-item active"><i class="ti ti-file-text"></i>Jobs</button>
-  <button class="nav-item" onclick="go('/customer/chat.html')"><i class="ti ti-message"></i>Chat</button>
-  <
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Innself — Job tracking</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  </head>
+  <body>
+    <div id="loading">
+      <div class="spinner">
+      </div>
+    </div>
+    <div id="toast">
+    </div>
+    <main class="page">
+      <header class="topbar">
+        <button class="back-btn" onclick="go('/customer/home.html')">
+          <i class="ti ti-arrow-left">
+          </i>
+        </button>
+        <span class="topbar-title">Job tracking</span>
+        <div style="width:28px">
+        </div>
+      </header>
+      <section id="content" style="padding:16px 12px">
+      </section>
+    </main>
+<script type="module">
+import{
+ requireAuth,getJobById,confirmJob,raiseDispute,subscribeToJob,unsubscribe,toast,loading,getInitials
+}
+ from'../supabase.js';
+ const id=new URLSearchParams(location.search).get('job');
+ let channel;
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({
+ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}
+ [c]));
+;
+ window.go=u=>location.href=u;
+ const steps=['assigned','in_progress','completed'];
+ const labels={
+ assigned:'Technician assigned',in_progress:'Work in progress',completed:'Work completed'
+};
+;
+ window.load=async()=>{
+ if(!id)return go('/customer/home.html');
+ try{
+ const j=await getJobById(id);
+ const active=Math.max(0,steps.indexOf(j.status));
+ const tech=j.users;
+    ;
+ document.getElementById('content').innerHTML=`<div class="card"><span class="badge badge-${ j.status==='completed'?'green':'amber' } ">${esc((j.status||'assigned').replace('_',' '))}</span><h2 style="margin-top:8px">${esc(j.title)}</h2><p>${esc(j.location_address||'')}</p></div>${tech?`<div class="card"><p class="label">YOUR TECHNICIAN</p><div class="row"><div class="avatar">${
+ getInitials(tech.name)
+    }
+ </div><div><h3>${
+ esc(tech.name)
+    }
+ </h3><p><span class="stars">★</span> ${
+ Number(tech.rating_avg||0).toFixed(1)
+    }
+ rating</p></div></div></div>`:''}<div class="card"><h2>Progress</h2>${steps.map((s,n)=>`<div class="row" style="margin-top:14px"><i class="ti ti-${ n<=active?'circle-check-filled':'circle' } " style="font-size:20px; color:${ n<=active?'var(--teal)':'var(--hint)' } "></i><div><h3 style="color:${ n<=active?'var(--text)':'var(--muted)' } ">${
+ labels[s]
+    }
+ </h3>${
+ n===active?'<p>Current status</p>':''
+    }
+ </div></div>`).join('')}</div>${j.status==='completed'?`<button class="btn btn-primary" onclick="complete()">Confirm completion</button>`:`<button class="btn btn-danger" onclick="dispute()">Report an issue</button>`}`
+  }
+ catch(e){
+ toast(e.message,'error')
+  }
+};
+;
+ window.complete=async()=>{
+ loading(true);
+ try{
+ await confirmJob(id);
+ location.href=`/customer/review.html?job=${id}`
+  }
+ catch(e){
+ toast(e.message,'error')
+  }
+ loading(false)
+};
+;
+ window.dispute=async()=>{
+ const reason=prompt('Describe the issue:');
+ if(!reason?.trim())return;
+ loading(true);
+ try{
+ await raiseDispute(id,reason.trim());
+ toast('Issue reported. Our team will review it.','success')
+  }
+ catch(e){
+ toast(e.message,'error')
+  }
+ loading(false)
+};
+ (async()=>{
+ if(!await requireAuth(['customer']))return;
+ loading(true);
+ await load();
+ loading(false);
+ channel=subscribeToJob(id,()=>{
+ toast('Job status updated','success');
+ load()
+  })
+})();
+ addEventListener('beforeunload',()=>channel&&unsubscribe(channel));
+</script>
+</body></html>

@@ -1,45 +1,119 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Innself — Post Job</title>
-<link rel="stylesheet" href="../styles.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
-</head><body>
-
-<div id="loading"><div class="spinner"></div></div>
-<div id="toast"></div>
-
-<div class="page">
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
-    <span class="topbar-title">Post Job</span>
-    <div style="width:28px"></div>
-  </div>
-
-  <div id="content" style="padding:12px">Loading...</div>
-</div>
-
-<nav class="bottom-nav">
-  <button class="nav-item" onclick="go('/customer/home.html')"><i class="ti ti-home"></i>Home</button>
-  <button class="nav-item active"><i class="ti ti-file-text"></i>Jobs</button>
-  <button class="nav-item" onclick="go('/customer/chat.html')"><i class="ti ti-message"></i>Chat</button>
-  <button class="nav-item" onclick="go('/customer/profile.html')"><i class="ti ti-user"></i>Profile</button>
-</nav>
-
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Innself — Post a job</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  </head>
+  <body>
+    <div id="loading">
+      <div class="spinner">
+      </div>
+    </div>
+    <div id="toast">
+    </div>
+    <main class="page">
+      <header class="topbar">
+        <button class="back-btn" onclick="history.back()">
+          <i class="ti ti-arrow-left">
+          </i>
+        </button>
+        <span class="topbar-title">Post a job</span>
+        <div style="width:28px">
+        </div>
+      </header>
+      <form id="job-form" style="padding:16px 12px">
+        <div class="card">
+          <h2>Tell us what you need</h2>
+          <p style="margin-bottom:16px">Clear details help technicians send better bids.</p>
+          <label class="label">Service category</label>
+          <select id="category" required>
+            <option value="">Choose a service</option>
+            <option>Plumbing</option>
+            <option>Electrical</option>
+            <option>Cleaning</option>
+            <option>Appliances</option>
+            <option>Painting</option>
+            <option>Carpentry</option>
+            <option>AC service</option>
+          </select>
+          <div class="spacer">
+          </div>
+          <label class="label">Job title</label>
+          <input id="title" maxlength="100" placeholder="e.g. Kitchen sink is leaking" required>
+          <div class="spacer">
+          </div>
+          <label class="label">Describe the work</label>
+          <textarea id="description" maxlength="1000" placeholder="What is wrong, when did it start, and anything the technician should know?" required>
+          </textarea>
+        </div>
+        <div class="card">
+          <h2>Location & timing</h2>
+          <label class="label">Service address</label>
+          <textarea id="address" placeholder="House / flat number, street, area, city" required>
+          </textarea>
+          <div class="spacer">
+          </div>
+          <label class="label">Preferred date and time</label>
+          <input id="preferred-start" type="datetime-local">
+          <label class="row" style="margin-top:12px;cursor:pointer">
+            <input id="urgent" type="checkbox" style="width:auto">
+            <span>Urgent — I need help as soon as possible</span>
+          </label>
+        </div>
+        <div class="card">
+          <h2>Budget (optional)</h2>
+          <p style="margin-bottom:12px">Technicians can still bid outside this range.</p>
+          <div class="grid2">
+            <div>
+              <label class="label">Minimum (₹)</label>
+              <input id="budget-min" type="number" min="0" placeholder="500">
+            </div>
+            <div>
+              <label class="label">Maximum (₹)</label>
+              <input id="budget-max" type="number" min="0" placeholder="1500">
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary" type="submit">Post job and receive bids</button>
+      </form>
+    </main>
 <script type="module">
-import{requireAuth,toast,loading}from'../supabase.js'
-function go(url){window.location.href=url}
-window.go=go
-
-;(async()=>{
-  const user=await requireAuth(['customer'])
-  if(!user)return
-  loading(true)
-  try{
-    // form to post a new job
-  }catch(e){toast(e.message,'error')}
-  loading(false)
+import{
+ requireAuth,createJob,toast,loading
+}
+ from'../supabase.js';
+;
+ window.addEventListener('DOMContentLoaded',()=>{
+ const preset=new URLSearchParams(location.search).get('category');
+ if(preset)document.getElementById('category').value=preset
+});
+;
+ document.getElementById('job-form').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const min=Number(document.getElementById('budget-min').value)||null,max=Number(document.getElementById('budget-max').value)||null;
+ if(min&&max&&min>max){
+ toast('Minimum budget cannot exceed maximum','error');
+ return
+  }
+ loading(true);
+ try{
+ const job=await createJob({
+ category:document.getElementById('category').value,title:document.getElementById('title').value.trim(),description:document.getElementById('description').value.trim(),address:document.getElementById('address').value.trim(),budget_min:min,budget_max:max,preferred_start:document.getElementById('preferred-start').value||null,is_urgent:document.getElementById('urgent').checked
+    });
+ const id=typeof job==='object'?(job.id||job[0]?.id):job;
+ toast('Job posted successfully','success');
+ setTimeout(()=>location.href=id?`/customer/bids.html?job=${id}`:'/customer/home.html',500)
+  }
+ catch(err){
+ toast(err.message,'error')
+  }
+ loading(false)
+});
+ (async()=>{
+ if(!await requireAuth(['customer']))return
 })()
 </script>
 </body></html>

@@ -1,45 +1,109 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Innself — Bids</title>
-<link rel="stylesheet" href="../styles.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
-</head><body>
-
-<div id="loading"><div class="spinner"></div></div>
-<div id="toast"></div>
-
-<div class="page">
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
-    <span class="topbar-title">Bids</span>
-    <div style="width:28px"></div>
-  </div>
-
-  <div id="content" style="padding:12px">Loading...</div>
-</div>
-
-<nav class="bottom-nav">
-  <button class="nav-item" onclick="go('/customer/home.html')"><i class="ti ti-home"></i>Home</button>
-  <button class="nav-item active"><i class="ti ti-file-text"></i>Jobs</button>
-  <button class="nav-item" onclick="go('/customer/chat.html')"><i class="ti ti-message"></i>Chat</button>
-  <button class="nav-item" onclick="go('/customer/profile.html')"><i class="ti ti-user"></i>Profile</button>
-</nav>
-
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Innself — Compare bids</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  </head>
+  <body>
+    <div id="loading">
+      <div class="spinner">
+      </div>
+    </div>
+    <div id="toast">
+    </div>
+    <main class="page">
+      <header class="topbar">
+        <button class="back-btn" onclick="go('/customer/home.html')">
+          <i class="ti ti-arrow-left">
+          </i>
+        </button>
+        <span class="topbar-title">Compare bids</span>
+        <button class="back-btn" onclick="load()">
+          <i class="ti ti-refresh">
+          </i>
+        </button>
+      </header>
+      <section style="padding:16px 12px">
+        <div id="job">
+        </div>
+        <div class="row-between" style="margin:18px 2px 10px">
+          <h2>Technician bids</h2>
+          <span id="count" class="badge badge-teal">
+          </span>
+        </div>
+        <div id="bids">
+        </div>
+      </section>
+    </main>
 <script type="module">
-import{requireAuth,toast,loading}from'../supabase.js'
-function go(url){window.location.href=url}
-window.go=go
-
-;(async()=>{
-  const user=await requireAuth(['customer'])
-  if(!user)return
-  loading(true)
-  try{
-    // load bids for selected job
-  }catch(e){toast(e.message,'error')}
-  loading(false)
-})()
+import{
+ requireAuth,getJobById,getBidsForJob,acceptBid,subscribeToBids,unsubscribe,toast,loading,fmtMoney,timeAgo,getInitials
+}
+ from'../supabase.js';
+ const id=new URLSearchParams(location.search).get('job');
+ let channel;
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({
+ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}
+ [c]));
+;
+ window.go=u=>location.href=u;
+;
+ window.load=async()=>{
+ if(!id){
+ go('/customer/home.html');
+ return
+  }
+ try{
+ const[job,bids]=await Promise.all([getJobById(id),getBidsForJob(id)]);
+    ;
+ document.getElementById('job').innerHTML=`<div class="card"><span class="badge badge-teal">${esc(job.category)}</span><h2 style="margin-top:8px">${esc(job.title)}</h2><p>${esc(job.description)}</p></div>`;
+    ;
+ document.getElementById('count').textContent=`${bids.length} bid${bids.length===1?'':'s'}`;
+    ;
+ document.getElementById('bids').innerHTML=bids.length?bids.map(b=>{
+ const u=b.users||{
+      };
+ return `<article class="card"><div class="row-between"><div class="row"><div class="avatar">${getInitials(u.name)}</div><div><h3>${esc(u.name||'Technician')}</h3><p><span class="stars">★</span> ${Number(u.rating_avg||0).toFixed(1)} · ${u.rating_count||0} reviews</p></div></div><strong style="color:var(--teal-d)">${fmtMoney(b.price)}</strong></div>${b.note?`<p style="margin-top:12px">“${
+ esc(b.note)
+      }
+ ”</p>`:''}<div class="divider"></div><div class="row-between"><p>${b.estimated_duration_hrs?`${
+ b.estimated_duration_hrs
+      }
+ hr estimate · `:''}${timeAgo(b.created_at)}</p><button class="btn btn-primary btn-sm" onclick="choose('${b.id}')">Accept bid</button></div></article>`
+    }).join(''):'<div class="card" style="text-align:center"><i class="ti ti-hourglass" style="font-size:30px; color:var(--teal)"></i><h3 style="margin-top:8px">Waiting for bids</h3><p>We’ll show qualified technician offers here as they arrive.</p></div>'
+  }
+ catch(e){
+ toast(e.message,'error')
+  }
+};
+;
+ window.choose=async bid=>{
+ if(!confirm('Accept this bid? Other pending bids will be declined.'))return;
+ loading(true);
+ try{
+ await acceptBid(bid);
+ toast('Bid accepted','success');
+ location.href=`/customer/tracking.html?job=${id}`
+  }
+ catch(e){
+ toast(e.message,'error')
+  }
+ loading(false)
+};
+ (async()=>{
+ if(!await requireAuth(['customer']))return;
+ loading(true);
+ await load();
+ loading(false);
+ channel=subscribeToBids(id,()=>{
+ toast('A new bid arrived','success');
+ load()
+  })
+})();
+ addEventListener('beforeunload',()=>channel&&unsubscribe(channel));
 </script>
 </body></html>
