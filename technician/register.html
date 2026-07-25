@@ -1,38 +1,88 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Innself — Technician Register</title>
-<link rel="stylesheet" href="../styles.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
-</head><body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Innself — Technician registration</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  </head>
+  <body>
+    <div id="loading"><div class="spinner"></div></div>
+    <div id="toast"></div>
 
-<div id="loading"><div class="spinner"></div></div>
-<div id="toast"></div>
+    <main class="page">
+      <header class="topbar">
+        <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
+        <span class="topbar-title">Become a technician</span>
+        <div style="width:28px"></div>
+      </header>
 
-<div class="page">
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
-    <span class="topbar-title">Register</span>
-    <div style="width:28px"></div>
-  </div>
+      <form id="register-form" style="padding:16px 12px">
+        <div class="card">
+          <h2>Build your service profile</h2>
+          <p style="margin-bottom:16px">Customers see this when deciding which bid to accept.</p>
+          <label class="label">Full name</label>
+          <input id="name" required maxlength="80" placeholder="Your full name">
+          <div class="spacer"></div>
+          <label class="label">About your experience</label>
+          <textarea id="bio" maxlength="600" placeholder="For example: 6 years of residential electrical repair experience."></textarea>
+        </div>
 
-  <div id="content" style="padding:12px">Loading...</div>
-</div>
+        <div class="card">
+          <h2>Services you offer</h2>
+          <p style="margin-bottom:12px">Choose at least one category.</p>
+          <div id="categories" class="grid2"></div>
+          <div class="spacer"></div>
+          <label class="label">Service radius: <span id="radius-value">10 km</span></label>
+          <input id="radius" type="range" min="2" max="50" value="10" style="padding:0" oninput="document.getElementById('radius-value').textContent=this.value+' km'">
+        </div>
 
-<script type="module">
-import{requireAuth,toast,loading}from'../supabase.js'
-function go(url){window.location.href=url}
-window.go=go
+        <button class="btn btn-primary" type="submit">Create technician profile</button>
+      </form>
+    </main>
 
-;(async()=>{
-  const user=await requireAuth(['technician'])
-  if(!user)return
-  loading(true)
-  try{
-    // technician registration form
-  }catch(e){toast(e.message,'error')}
-  loading(false)
-})()
-</script>
-</body></html>
+    <script type="module">
+      import { requireAuth, registerTechnician, toast, loading } from '../supabase.js'
+
+      const services = ['Plumbing', 'Electrical', 'Cleaning', 'Appliances', 'Painting', 'Carpentry', 'AC service']
+      const categoryBox = document.getElementById('categories')
+      categoryBox.innerHTML = services.map(service => `
+        <label class="cat-tile" style="text-align:left">
+          <input type="checkbox" value="${service}" style="width:auto;margin-right:7px">
+          <span>${service}</span>
+        </label>
+      `).join('')
+
+      document.getElementById('register-form').addEventListener('submit', async event => {
+        event.preventDefault()
+        const categories = [...document.querySelectorAll('#categories input:checked')].map(input => input.value)
+        if (!categories.length) {
+          toast('Choose at least one service category', 'error')
+          return
+        }
+
+        loading(true)
+        try {
+          await registerTechnician({
+            name: document.getElementById('name').value.trim(),
+            bio: document.getElementById('bio').value.trim(),
+            categories,
+            radius: Number(document.getElementById('radius').value)
+          })
+          toast('Profile created. You can now browse jobs.', 'success')
+          setTimeout(() => { location.href = '/technician/feed.html' }, 500)
+        } catch (error) {
+          toast(error.message, 'error')
+        }
+        loading(false)
+      })
+
+      ;(async () => {
+        const user = await requireAuth(['technician'])
+        if (!user) return
+        document.getElementById('name').value = user.name || ''
+      })()
+    </script>
+  </body>
+</html>

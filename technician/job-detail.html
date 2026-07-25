@@ -1,38 +1,90 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Innself — Job Detail</title>
-<link rel="stylesheet" href="../styles.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
-</head><body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Innself — Job details</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  </head>
+  <body>
+    <div id="loading"><div class="spinner"></div></div>
+    <div id="toast"></div>
+    <main class="page">
+      <header class="topbar">
+        <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
+        <span class="topbar-title">Job details</span>
+        <div style="width:28px"></div>
+      </header>
+      <section id="content" style="padding:16px 12px"></section>
+    </main>
 
-<div id="loading"><div class="spinner"></div></div>
-<div id="toast"></div>
+    <script type="module">
+      import { requireAuth, getJobById, submitBid, toast, loading, fmtMoney } from '../supabase.js'
 
-<div class="page">
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
-    <span class="topbar-title">Job Detail</span>
-    <div style="width:28px"></div>
-  </div>
+      const jobId = new URLSearchParams(location.search).get('job')
+      const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[char]))
 
-  <div id="content" style="padding:12px">Loading...</div>
-</div>
+      function formatDate(value) {
+        return value ? new Date(value).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Flexible'
+      }
 
-<script type="module">
-import{requireAuth,toast,loading}from'../supabase.js'
-function go(url){window.location.href=url}
-window.go=go
+      async function render() {
+        if (!jobId) { location.href = '/technician/feed.html'; return }
+        const job = await getJobById(jobId)
+        document.getElementById('content').innerHTML = `
+          <div class="card">
+            <div class="row-between"><span class="badge badge-${job.is_urgent ? 'red' : 'teal'}">${job.is_urgent ? 'Urgent' : escapeHtml(job.category)}</span><span class="label">${escapeHtml(job.status)}</span></div>
+            <h1 style="margin-top:10px">${escapeHtml(job.title)}</h1>
+            <p>${escapeHtml(job.description)}</p>
+          </div>
+          <div class="card">
+            <div class="row"><i class="ti ti-map-pin" style="color:var(--teal)"></i><p>${escapeHtml(job.location_address || 'Address shared after selection')}</p></div>
+            <div class="row" style="margin-top:12px"><i class="ti ti-calendar" style="color:var(--teal)"></i><p>${formatDate(job.preferred_start)}</p></div>
+            <div class="row" style="margin-top:12px"><i class="ti ti-cash" style="color:var(--teal)"></i><p>Customer budget: ${job.budget_min || job.budget_max ? `${fmtMoney(job.budget_min)} – ${fmtMoney(job.budget_max)}` : 'Not specified'}</p></div>
+          </div>
+          <form id="bid-form" class="card">
+            <h2>Send your bid</h2>
+            <label class="label">Your price (₹)</label><input id="price" type="number" min="1" required placeholder="Enter your quote">
+            <div class="spacer"></div>
+            <label class="label">When can you start?</label><input id="start" type="datetime-local" required>
+            <div class="spacer"></div>
+            <label class="label">Estimated duration in hours</label><input id="duration" type="number" min="0.5" step="0.5" placeholder="e.g. 2">
+            <div class="spacer"></div>
+            <label class="label">Note to the customer (optional)</label><textarea id="note" maxlength="500" placeholder="Briefly explain what is included in your quote."></textarea>
+            <button class="btn btn-primary" type="submit" style="margin-top:16px">Submit bid</button>
+          </form>
+        `
+        document.getElementById('bid-form').addEventListener('submit', sendBid)
+      }
 
-;(async()=>{
-  const user=await requireAuth(['technician'])
-  if(!user)return
-  loading(true)
-  try{
-    // fetch job detail by ID
-  }catch(e){toast(e.message,'error')}
-  loading(false)
-})()
-</script>
-</body></html>
+      async function sendBid(event) {
+        event.preventDefault()
+        loading(true)
+        try {
+          await submitBid({
+            jobId,
+            price: Number(document.getElementById('price').value),
+            proposedStart: document.getElementById('start').value,
+            durationHrs: Number(document.getElementById('duration').value) || null,
+            note: document.getElementById('note').value.trim()
+          })
+          toast('Your bid has been sent.', 'success')
+          setTimeout(() => { location.href = '/technician/feed.html' }, 500)
+        } catch (error) {
+          toast(error.message, 'error')
+        }
+        loading(false)
+      }
+
+      ;(async () => {
+        if (!await requireAuth(['technician'])) return
+        loading(true)
+        try { await render() } catch (error) { toast(error.message, 'error') }
+        loading(false)
+      })()
+    </script>
+  </body>
+</html>

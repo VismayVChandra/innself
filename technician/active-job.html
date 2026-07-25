@@ -1,38 +1,75 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Innself — Active Job</title>
-<link rel="stylesheet" href="../styles.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
-</head><body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Innself — Active job</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  </head>
+  <body>
+    <div id="loading"><div class="spinner"></div></div>
+    <div id="toast"></div>
+    <main class="page">
+      <header class="topbar">
+        <button class="back-btn" onclick="location.href='/technician/feed.html'"><i class="ti ti-arrow-left"></i></button>
+        <span class="topbar-title">Active job</span>
+        <div style="width:28px"></div>
+      </header>
+      <section id="content" style="padding:16px 12px"></section>
+    </main>
 
-<div id="loading"><div class="spinner"></div></div>
-<div id="toast"></div>
+    <script type="module">
+      import { requireAuth, getMyBids, getJobById, updateJobStatus, toast, loading, fmtMoney } from '../supabase.js'
 
-<div class="page">
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
-    <span class="topbar-title">Active Job</span>
-    <div style="width:28px"></div>
-  </div>
+      const requestedJob = new URLSearchParams(location.search).get('job')
+      const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[char]))
 
-  <div id="content" style="padding:12px">Loading...</div>
-</div>
+      async function findJob() {
+        if (requestedJob) return getJobById(requestedJob)
+        const bids = await getMyBids()
+        const current = bids.find(bid => ['assigned', 'in_progress'].includes(bid.jobs?.status))
+        return current ? getJobById(current.job_id) : null
+      }
 
-<script type="module">
-import{requireAuth,toast,loading}from'../supabase.js'
-function go(url){window.location.href=url}
-window.go=go
+      async function render() {
+        const job = await findJob()
+        if (!job) {
+          document.getElementById('content').innerHTML = '<div class="card" style="text-align:center"><i class="ti ti-briefcase-off" style="font-size:30px;color:var(--teal)"></i><h2 style="margin-top:8px">No active job</h2><p>Accepted jobs will appear here.</p><button class="btn btn-primary" style="margin-top:14px" onclick="location.href=\'/technician/feed.html\'">Browse jobs</button></div>'
+          return
+        }
+        const isAssigned = job.status === 'assigned'
+        document.getElementById('content').innerHTML = `
+          <div class="card"><span class="badge badge-${isAssigned ? 'amber' : 'purple'}">${escapeHtml(job.status.replace('_', ' '))}</span><h1 style="margin-top:8px">${escapeHtml(job.title)}</h1><p>${escapeHtml(job.description)}</p></div>
+          <div class="card"><h2>Customer location</h2><p>${escapeHtml(job.location_address || '')}</p>${job.users?.name ? `<div class="divider"></div><p>Customer: ${escapeHtml(job.users.name)}</p>` : ''}</div>
+          <div class="card"><div class="row-between"><p>Agreed amount</p><strong>${fmtMoney(job.accepted_price || 0)}</strong></div></div>
+          <button class="btn btn-primary" onclick="advance('${job.id}', '${job.status}')">${isAssigned ? 'Start work' : 'Mark work as complete'}</button>
+        `
+      }
 
-;(async()=>{
-  const user=await requireAuth(['technician'])
-  if(!user)return
-  loading(true)
-  try{
-    // load current active job details
-  }catch(e){toast(e.message,'error')}
-  loading(false)
-})()
-</script>
-</body></html>
+      window.advance = async (jobId, currentStatus) => {
+        const nextStatus = currentStatus === 'assigned' ? 'in_progress' : 'completed'
+        const label = nextStatus === 'in_progress' ? 'start this job' : 'mark this job complete'
+        if (!confirm(`Are you ready to ${label}?`)) return
+        loading(true)
+        try {
+          await updateJobStatus(jobId, nextStatus)
+          toast(nextStatus === 'completed' ? 'Job marked complete. Awaiting customer confirmation.' : 'Job started.', 'success')
+          await render()
+        } catch (error) {
+          toast(error.message, 'error')
+        }
+        loading(false)
+      }
+
+      ;(async () => {
+        if (!await requireAuth(['technician'])) return
+        loading(true)
+        try { await render() } catch (error) { toast(error.message, 'error') }
+        loading(false)
+      })()
+    </script>
+  </body>
+</html>

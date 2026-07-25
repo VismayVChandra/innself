@@ -1,38 +1,89 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Innself — Feed</title>
-<link rel="stylesheet" href="../styles.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
-</head><body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Innself — Job feed</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  </head>
+  <body>
+    <div id="loading"><div class="spinner"></div></div>
+    <div id="toast"></div>
+    <main class="page">
+      <header class="topbar">
+        <div><span class="topbar-title">Available jobs</span><p>Find work near you</p></div>
+        <button class="back-btn" onclick="loadJobs()"><i class="ti ti-refresh"></i></button>
+      </header>
+      <section style="padding:16px 12px">
+        <div id="filters" style="display:flex;gap:8px;overflow:auto;padding-bottom:12px"></div>
+        <div id="jobs"></div>
+      </section>
+    </main>
+    <nav class="bottom-nav">
+      <button class="nav-item active"><i class="ti ti-list-search"></i>Jobs</button>
+      <button class="nav-item" onclick="location.href='/technician/active-job.html'"><i class="ti ti-briefcase"></i>Active</button>
+      <button class="nav-item" onclick="location.href='/technician/earnings.html'"><i class="ti ti-wallet"></i>Earnings</button>
+      <button class="nav-item" onclick="location.href='/technician/register.html'"><i class="ti ti-user"></i>Profile</button>
+    </nav>
 
-<div id="loading"><div class="spinner"></div></div>
-<div id="toast"></div>
+    <script type="module">
+      import { requireAuth, getOpenJobs, toast, loading, timeAgo, fmtMoney } from '../supabase.js'
 
-<div class="page">
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
-    <span class="topbar-title">Feed</span>
-    <div style="width:28px"></div>
-  </div>
+      const categories = ['all', 'Plumbing', 'Electrical', 'Cleaning', 'Appliances', 'Painting', 'Carpentry', 'AC service']
+      let selectedCategory = 'all'
+      const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[char]))
 
-  <div id="content" style="padding:12px">Loading...</div>
-</div>
+      function renderFilters() {
+        document.getElementById('filters').innerHTML = categories.map(category => `
+          <button class="btn btn-sm ${category === selectedCategory ? 'btn-primary' : 'btn-secondary'}" onclick="pickCategory('${category}')">
+            ${category === 'all' ? 'All jobs' : category}
+          </button>
+        `).join('')
+      }
 
-<script type="module">
-import{requireAuth,toast,loading}from'../supabase.js'
-function go(url){window.location.href=url}
-window.go=go
+      window.pickCategory = category => {
+        selectedCategory = category
+        renderFilters()
+        loadJobs()
+      }
 
-;(async()=>{
-  const user=await requireAuth(['technician'])
-  if(!user)return
-  loading(true)
-  try{
-    // load available jobs feed
-  }catch(e){toast(e.message,'error')}
-  loading(false)
-})()
-</script>
-</body></html>
+      window.loadJobs = async () => {
+        const box = document.getElementById('jobs')
+        box.innerHTML = '<p>Loading available work…</p>'
+        try {
+          const jobs = await getOpenJobs(selectedCategory)
+          if (!jobs.length) {
+            box.innerHTML = '<div class="card" style="text-align:center"><i class="ti ti-search-off" style="font-size:30px;color:var(--teal)"></i><h3 style="margin-top:8px">No jobs available</h3><p>Try another category or check back shortly.</p></div>'
+            return
+          }
+          box.innerHTML = jobs.map(job => `
+            <button class="card" style="width:100%;text-align:left;cursor:pointer" onclick="location.href='/technician/job-detail.html?job=${job.id}'">
+              <div class="row-between">
+                <span class="badge badge-${job.is_urgent ? 'red' : 'teal'}">${job.is_urgent ? 'Urgent' : escapeHtml(job.category)}</span>
+                <span class="label">${timeAgo(job.created_at)}</span>
+              </div>
+              <h2 style="margin-top:8px">${escapeHtml(job.title)}</h2>
+              <p>${escapeHtml(job.location_address || 'Location provided after selection')}</p>
+              <div class="divider"></div>
+              <div class="row-between"><p>Budget</p><strong>${job.budget_min || job.budget_max ? `${fmtMoney(job.budget_min)} – ${fmtMoney(job.budget_max)}` : 'Open to bids'}</strong></div>
+            </button>
+          `).join('')
+        } catch (error) {
+          box.innerHTML = '<p>Could not load jobs.</p>'
+          toast(error.message, 'error')
+        }
+      }
+
+      ;(async () => {
+        if (!await requireAuth(['technician'])) return
+        renderFilters()
+        loading(true)
+        await loadJobs()
+        loading(false)
+      })()
+    </script>
+  </body>
+</html>

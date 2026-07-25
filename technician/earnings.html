@@ -1,38 +1,77 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Innself — Earnings</title>
-<link rel="stylesheet" href="../styles.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
-</head><body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Innself — Earnings</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  </head>
+  <body>
+    <div id="loading"><div class="spinner"></div></div>
+    <div id="toast"></div>
+    <main class="page">
+      <header class="topbar">
+        <button class="back-btn" onclick="location.href='/technician/feed.html'"><i class="ti ti-arrow-left"></i></button>
+        <span class="topbar-title">Earnings</span>
+        <div style="width:28px"></div>
+      </header>
+      <section id="content" style="padding:16px 12px"></section>
+    </main>
 
-<div id="loading"><div class="spinner"></div></div>
-<div id="toast"></div>
+    <script type="module">
+      import { requireAuth, getWallet, getWalletTransactions, requestWithdrawal, toast, loading, fmtMoney, timeAgo } from '../supabase.js'
 
-<div class="page">
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
-    <span class="topbar-title">Earnings</span>
-    <div style="width:28px"></div>
-  </div>
+      let wallet = null
 
-  <div id="content" style="padding:12px">Loading...</div>
-</div>
+      async function render() {
+        const [walletData, transactions] = await Promise.all([getWallet(), getWalletTransactions()])
+        wallet = walletData
+        document.getElementById('content').innerHTML = `
+          <div class="card" style="background:linear-gradient(135deg,#0d3d2e,#1a1a1a)">
+            <p style="color:var(--teal-d)">AVAILABLE BALANCE</p>
+            <h1 style="font-size:32px;margin-top:5px">${fmtMoney(wallet.wallet_balance)}</h1>
+            <p>${wallet.total_jobs_completed || 0} completed jobs</p>
+            <button class="btn btn-primary" style="margin-top:16px" onclick="withdraw()">Withdraw funds</button>
+          </div>
+          <div class="row-between" style="margin:20px 2px 10px"><h2>Transactions</h2><button class="btn btn-sm btn-secondary" onclick="refresh()">Refresh</button></div>
+          <div id="transactions">${transactions.length ? transactions.map(transaction => `
+            <div class="card2 row-between"><div><h3>${transaction.type === 'withdrawal' ? 'Withdrawal' : 'Job payment'}</h3><p>${timeAgo(transaction.created_at)}</p></div><strong style="color:${transaction.type === 'withdrawal' ? 'var(--muted)' : 'var(--teal-d)'}">${transaction.type === 'withdrawal' ? '−' : '+'}${fmtMoney(transaction.amount)}</strong></div>
+          `).join('') : '<div class="card"><p>No transactions yet.</p></div>'}</div>
+        `
+      }
 
-<script type="module">
-import{requireAuth,toast,loading}from'../supabase.js'
-function go(url){window.location.href=url}
-window.go=go
+      window.refresh = async () => {
+        loading(true)
+        try { await render() } catch (error) { toast(error.message, 'error') }
+        loading(false)
+      }
 
-;(async()=>{
-  const user=await requireAuth(['technician'])
-  if(!user)return
-  loading(true)
-  try{
-    // fetch and render earnings summary
-  }catch(e){toast(e.message,'error')}
-  loading(false)
-})()
-</script>
-</body></html>
+      window.withdraw = async () => {
+        const raw = prompt(`Enter an amount to withdraw (available: ${fmtMoney(wallet?.wallet_balance || 0)}):`)
+        if (raw === null) return
+        const amount = Number(raw)
+        if (!Number.isFinite(amount) || amount <= 0 || amount > Number(wallet?.wallet_balance || 0)) {
+          toast('Enter a valid amount within your available balance.', 'error')
+          return
+        }
+        loading(true)
+        try {
+          await requestWithdrawal(amount)
+          toast('Withdrawal request submitted.', 'success')
+          await render()
+        } catch (error) {
+          toast(error.message, 'error')
+        }
+        loading(false)
+      }
+
+      ;(async () => {
+        if (!await requireAuth(['technician'])) return
+        loading(true)
+        try { await render() } catch (error) { toast(error.message, 'error') }
+        loading(false)
+      })()
+    </script>
+  </body>
+</html>
