@@ -79,7 +79,9 @@
       })
 
       ;(async () => {
-        const user = await requireAuth(['technician'])
+        // New sign-ups begin with the customer role until this registration
+        // RPC creates their technician profile and updates their role.
+        const user = await requireAuth(['technician', 'customer'])
         if (!user) return
         document.getElementById('name').value = user.name || ''
       })()
