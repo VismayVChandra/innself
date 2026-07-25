@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Innself — Tracking</title>
+<link rel="stylesheet" href="../styles.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
+</head><body>
+
+<div id="loading"><div class="spinner"></div></div>
+<div id="toast"></div>
+
+<div class="page">
+  <div class="topbar">
+    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
+    <span class="topbar-title">Tracking</span>
+    <div style="width:28px"></div>
+  </div>
+
+  <div id="content" style="padding:12px">Loading...</div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-item" onclick="go('/customer/home.html')"><i class="ti ti-home"></i>Home</button>
+  <button class="nav-item active"><i class="ti ti-file-text"></i>Jobs</button>
+  <button class="nav-item" onclick="go('/customer/chat.html')"><i class="ti ti-message"></i>Chat</button>
+  <

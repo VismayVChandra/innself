@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Innself</title>
+<link rel="stylesheet" href="styles.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
+</head><body>
+
+<div id="loading"><div class="spinner"></div></div>
+<div id="toast"></div>
+
+<div class="page" style="display:flex;flex-direction:column;min-height:100vh;justify-content:center;padding:24px">
+
+  <!-- Logo -->
+  <div style="text-align:center;margin-bottom:32px">
+    <div style="width:60px;height:60px;background:var(--teal-l);border-radius:16px;
+      display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+      <i class="ti ti-bolt" style="font-size:30px;color:var(--teal-d)"></i>
+    </div>
+    <h1 style="font-size:26px;margin-bottom:4px">Innself</h1>
+    <p>Home services, on demand</p>
+  </div>
+
+  <!-- Tab: login / signup -->
+  <div style="display:flex;background:var(--card2);border-radius:8px;padding:3px;margin-bottom:20px">
+    <button id="tab-login" onclick="showTab('login')"
+      style="flex:1;padding:8px;border-radius:6px;border:none;cursor:pointer;
+        font-size:13px;font-weight:500;background:var(--teal);color:#fff">Log in</button>
+    <button id="tab-signup" onclick="showTab('signup')"
+      style="flex:1;padding:8px;border-radius:6px;border:none;cursor:pointer;
+        font-size:13px;color:var(--muted);background:transparent">Sign up</button>
+  </div>
+
+  <!-- Login form -->
+  <div id="form-login">
+    <div class="spacer"></div>
+    <label class="label">Email</label>
+    <input type="email" id="login-email" placeholder="you@email.com" style="margin-bottom:10px"/>
+    <label class="label">Password</label>
+    <input type="password" id="login-password" placeholder="••••••••" style="margin-bottom:18px"/>
+    <button class="btn btn-primary" onclick="doLogin()">Log in</button>
+    <p style="text-align:center;margin-top:12px;font-size:12px">
+      <a href="#" onclick="forgotPassword()">Forgot password?</a>
+    </p>
+  </div>
+
+  <!-- Sign up form -->
+  <div id="form-signup" style="display:none">
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <div style="flex:1">
+        <label class="label">I am a</label>
+        <select id="signup-role">
+          <option value="customer">Customer</option>
+          <option value="technician">Technician</option>
+        </select>
+      </div>
+    </div>
+    <label class="label">Full name</label>
+    <input type="text" id="signup-name" placeholder="Your name" style="margin-bottom:10px"/>
+    <label class="label">Email</label>
+    <input type="email" id="signup-email" placeholder="you@email.com" style="margin-bottom:10px"/>
+    <label class="label">Password (min 8 chars)</label>
+    <input type="password" id="signup-password" placeholder="••••••••" style="margin-bottom:18px"/>
+    <button class="btn btn-primary" onclick="doSignup()">Create account</button>
+  </div>
+
+</div>
+
+<script type="module">
+import{sb,signIn,signUp,redirectByRole,getUser,toast,loading,
+  completeCustomerProfile,registerTechnician}from'./supabase.js'
+
+window.showTab=function(tab){
+  const isLogin=tab==='login'
+  document.getElementById('form-login').style.display=isLogin?'block':'none'
+  document.getElementById('form-signup').style.display=isLogin?'none':'block'
+  document.getElementById('tab-login').style.background=isLogin?'var(--teal)':'transparent'
+  document.getElementById('tab-login').style.color=isLogin?'#fff':'var(--muted)'
+  document.getElementById('tab-signup').style.background=isLogin?'transparent':'var(--teal)'
+  document.getElementById('tab-signup').style.color=isLogin?'var(--muted)':'#fff'
+}
+
+window.doLogin=async function(){
+  const email=document.getElementById('login-email').value.trim()
+  const password=document.getElementById('login-password').value
+  if(!email||!password){toast('Enter email and password','error');return}
+  loading(true)
+  try{
+    await signIn(email,password)
+    const user=await getUser()
+    redirectByRole(user.role)
+  }catch(e){toast(e.message,'error')}
+  loading(false)
+}
+
+window.doSignup=async function(){
+  const name=document.getElementById('signup-name').value.trim()
+  const email=document.getElementById('signup-email').value.trim()
+  const pass=document.getElementById('signup-password').value
+  const role=document.getElementById('signup-role').value
+  if(!name||!email||!pass){toast('Fill in all fields','error');return}
+  if(pass.length<8){toast('Password must be at least 8 characters','error');return}
+  loading(true)
+  try{
+    await signUp(email,pass,name)
+    await signIn(email,pass)
+    if(role==='customer'){
+      await completeCustomerProfile(name)
+      window.location.href='/customer/home.html'
+    }else{
+      window.location.href='/technician/register.html'
+    }
+  }catch(e){toast(e.message,'error')}
+  loading(false)
+}
+
+window.forgotPassword=async function(){
+  const email=prompt('Enter your email:')
+  if(!email)return
+  await sb.auth.resetPasswordForEmail(email)
+  toast('Reset link sent to '+email,'success')
+}
+
+;(async()=>{
+  const user=await getUser()
+  if(user)redirectByRole(user.role)
+})()
+</script>
+</body></html>

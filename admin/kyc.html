@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Innself — KYC Verification</title>
+<link rel="stylesheet" href="../styles.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
+</head><body>
+
+<div id="loading"><div class="spinner"></div></div>
+<div id="toast"></div>
+
+<div class="page">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
+    <span class="topbar-title">KYC Verification</span>
+    <div style="width:28px"></div>
+  </div>
+
+  <!-- YOUR UI GOES HERE -->
+  <div id="content" style="padding:12px">
+    Loading...
+  </div>
+</div>
+
+<script type="module">
+import{requireAuth,toast,loading}from'../supabase.js'
+
+function go(url){window.location.href=url}
+window.go=go
+
+;(async()=>{
+  const user=await requireAuth(['admin'])
+  if(!user)return
+
+  loading(true)
+  try{
+    // Fetch and render KYC submissions
+    // const kycs = await getPendingKYC()
+    // renderKYC(kycs)
+  }catch(e){toast(e.message,'error')}
+  loading(false)
+})()
+
+function renderKYC(kycs){
+  const el=document.getElementById('content')
+  if(!kycs.length){
+    el.innerHTML='<p style="text-align:center;margin-top:40px">No pending KYC requests</p>'
+    return
+  }
+  el.innerHTML=kycs.map(k=>`
+    <div class="card2" onclick="go('/admin/kyc-detail.html?id=${k.id}')">
+      <div class="row-between">
+        <h3>${k.name}</h3>
+        <span class="badge badge-${k.status==='verified'?'green':'amber'}">${k.status}</span>
+      </div>
+      <p>${k.email}</p>
+    </div>
+  `).join('')
+}
+</script>
+</body></html>

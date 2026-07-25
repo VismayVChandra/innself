@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Innself — Users</title>
+<link rel="stylesheet" href="../styles.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
+</head><body>
+
+<div id="loading"><div class="spinner"></div></div>
+<div id="toast"></div>
+
+<div class="page">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
+    <span class="topbar-title">Users</span>
+    <div style="width:28px"></div>
+  </div>
+
+  <!-- YOUR UI GOES HERE -->
+  <div id="content" style="padding:12px">
+    Loading...
+  </div>
+</div>
+
+<script type="module">
+import{requireAuth,toast,loading}from'../supabase.js'
+
+function go(url){window.location.href=url}
+window.go=go
+
+;(async()=>{
+  const user=await requireAuth(['admin'])
+  if(!user)return
+
+  loading(true)
+  try{
+    // Fetch and render user list
+    // const users = await getAllUsers()
+    // renderUsers(users)
+  }catch(e){toast(e.message,'error')}
+  loading(false)
+})()
+
+function renderUsers(users){
+  const el=document.getElementById('content')
+  if(!users.length){
+    el.innerHTML='<p style="text-align:center;margin-top:40px">No users found</p>'
+    return
+  }
+  el.innerHTML=users.map(u=>`
+    <div class="card2" onclick="go('/admin/user-detail.html?id=${u.id}')">
+      <div class="row-between">
+        <h3>${u.name}</h3>
+        <span class="badge badge-${u.role==='technician'?'purple':'teal'}">${u.role}</span>
+      </div>
+      <p>${u.email}</p>
+    </div>
+  `).join('')
+}
+</script>
+</body></html>

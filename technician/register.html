@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Innself — Technician Register</title>
+<link rel="stylesheet" href="../styles.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
+</head><body>
+
+<div id="loading"><div class="spinner"></div></div>
+<div id="toast"></div>
+
+<div class="page">
+  <div class="topbar">
+    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
+    <span class="topbar-title">Register</span>
+    <div style="width:28px"></div>
+  </div>
+
+  <div id="content" style="padding:12px">Loading...</div>
+</div>
+
+<script type="module">
+import{requireAuth,toast,loading}from'../supabase.js'
+function go(url){window.location.href=url}
+window.go=go
+
+;(async()=>{
+  const user=await requireAuth(['technician'])
+  if(!user)return
+  loading(true)
+  try{
+    // technician registration form
+  }catch(e){toast(e.message,'error')}
+  loading(false)
+})()
+</script>
+</body></html>
