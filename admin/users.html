@@ -1,63 +1,27 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Innself — Users</title>
-<link rel="stylesheet" href="../styles.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
-</head><body>
-
-<div id="loading"><div class="spinner"></div></div>
-<div id="toast"></div>
-
-<div class="page">
-  <!-- TOP BAR -->
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
-    <span class="topbar-title">Users</span>
-    <div style="width:28px"></div>
-  </div>
-
-  <!-- YOUR UI GOES HERE -->
-  <div id="content" style="padding:12px">
-    Loading...
-  </div>
-</div>
-
-<script type="module">
-import{requireAuth,toast,loading}from'../supabase.js'
-
-function go(url){window.location.href=url}
-window.go=go
-
-;(async()=>{
-  const user=await requireAuth(['admin'])
-  if(!user)return
-
-  loading(true)
-  try{
-    // Fetch and render user list
-    // const users = await getAllUsers()
-    // renderUsers(users)
-  }catch(e){toast(e.message,'error')}
-  loading(false)
-})()
-
-function renderUsers(users){
-  const el=document.getElementById('content')
-  if(!users.length){
-    el.innerHTML='<p style="text-align:center;margin-top:40px">No users found</p>'
-    return
-  }
-  el.innerHTML=users.map(u=>`
-    <div class="card2" onclick="go('/admin/user-detail.html?id=${u.id}')">
-      <div class="row-between">
-        <h3>${u.name}</h3>
-        <span class="badge badge-${u.role==='technician'?'purple':'teal'}">${u.role}</span>
-      </div>
-      <p>${u.email}</p>
-    </div>
-  `).join('')
-}
-</script>
-</body></html>
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Innself — Users</title><link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"></head>
+  <body>
+    <div id="loading"><div class="spinner"></div></div><div id="toast"></div>
+    <main class="page"><header class="topbar"><button class="back-btn" onclick="go('/admin/dashboard.html')"><i class="ti ti-arrow-left"></i></button><span class="topbar-title">Users</span><button class="back-btn" onclick="refresh()"><i class="ti ti-refresh"></i></button></header><section style="padding:16px 12px"><input id="search" placeholder="Search name or email" oninput="filterUsers()" style="margin-bottom:12px"><div id="content"></div></section></main>
+    <script type="module">
+      import { requireAuth, getAllUsers, suspendUser, restoreUser, toast, loading } from '../supabase.js'
+      let users = []
+      const safe = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]))
+      window.go = url => { location.href = url }
+      function render(list) {
+        document.getElementById('content').innerHTML = list.length ? list.map(user => `<article class="card"><div class="row-between"><div><h2>${safe(user.name || 'Unnamed user')}</h2><p>${safe(user.email || '')}</p></div><span class="badge badge-${user.role === 'admin' ? 'purple' : user.role === 'technician' ? 'amber' : 'teal'}">${safe(user.role)}</span></div><div class="divider"></div><div class="row-between"><p>${user.is_suspended ? 'Suspended' : 'Active'}</p>${user.role === 'admin' ? '' : `<button class="btn btn-sm ${user.is_suspended ? 'btn-secondary' : 'btn-danger'}" onclick="toggleUser('${user.id}',${Boolean(user.is_suspended)})">${user.is_suspended ? 'Restore' : 'Suspend'}</button>`}</div></article>`).join('') : '<div class="card"><p>No matching users.</p></div>'
+      }
+      window.filterUsers = () => { const query = document.getElementById('search').value.toLowerCase(); render(users.filter(user => `${user.name || ''} ${user.email || ''}`.toLowerCase().includes(query))) }
+      window.toggleUser = async (id, suspended) => {
+        const reason = suspended ? '' : prompt('Why is this account being suspended?')
+        if (!suspended && !reason?.trim()) return
+        loading(true)
+        try { if (suspended) await restoreUser(id); else await suspendUser(id, reason.trim()); toast(suspended ? 'User restored.' : 'User suspended.', 'success'); await refresh() } catch (error) { toast(error.message, 'error') }
+        loading(false)
+      }
+      window.refresh = async () => { loading(true); try { users = await getAllUsers(); render(users) } catch (error) { toast(error.message, 'error') }; loading(false) }
+      ;(async () => { if (!await requireAuth(['admin'])) return; await refresh() })()
+    </script>
+  </body>
+</html>

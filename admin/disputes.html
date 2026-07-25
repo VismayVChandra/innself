@@ -1,35 +1,29 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Innself — Disputes</title>
-<link rel="stylesheet" href="../styles.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
-</head><body>
-
-<div id="loading"><div class="spinner"></div></div>
-<div id="toast"></div>
-
-<div class="page">
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
-    <span class="topbar-title">Disputes</span>
-    <div style="width:28px"></div>
-  </div>
-
-  <div id="content" style="padding:12px">Loading...</div>
-</div>
-
-<script type="module">
-import{requireAuth,toast,loading}from'../supabase.js'
-;(async()=>{
-  const user=await requireAuth(['admin'])
-  if(!user)return
-  loading(true)
-  try{
-    // load disputes list
-  }catch(e){toast(e.message,'error')}
-  loading(false)
-})()
-</script>
-</body></html>
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Innself — Disputes</title><link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"></head>
+  <body>
+    <div id="loading"><div class="spinner"></div></div><div id="toast"></div>
+    <main class="page"><header class="topbar"><button class="back-btn" onclick="go('/admin/dashboard.html')"><i class="ti ti-arrow-left"></i></button><span class="topbar-title">Disputes</span><button class="back-btn" onclick="refresh()"><i class="ti ti-refresh"></i></button></header><section id="content" style="padding:16px 12px"></section></main>
+    <script type="module">
+      import { requireAuth, getDisputes, resolveDispute, toast, loading } from '../supabase.js'
+      const safe = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]))
+      window.go = url => { location.href = url }
+      async function render() {
+        const disputes = await getDisputes()
+        document.getElementById('content').innerHTML = disputes.length ? disputes.map(dispute => `<article class="card"><div class="row-between"><h2>${safe(dispute.job_title || dispute.title || 'Service dispute')}</h2><span class="badge badge-red">${safe(dispute.status || 'open')}</span></div><p style="margin-top:8px">${safe(dispute.reason || dispute.description || 'No reason provided')}</p><div class="divider"></div><p>Customer: ${safe(dispute.customer_name || '—')} · Technician: ${safe(dispute.technician_name || '—')}</p><button class="btn btn-primary" style="margin-top:14px" onclick="resolve('${dispute.id}')">Resolve dispute</button></article>`).join('') : '<div class="card" style="text-align:center"><i class="ti ti-scale" style="font-size:30px;color:var(--teal)"></i><h2 style="margin-top:8px">No open disputes</h2><p>Everything looks clear.</p></div>'
+      }
+      window.resolve = async id => {
+        const decision = prompt('Resolution: customer_refund, technician_paid, or split?')
+        if (!['customer_refund', 'technician_paid', 'split'].includes(decision)) { toast('Enter customer_refund, technician_paid, or split.', 'error'); return }
+        const note = prompt('Add a resolution note:')
+        if (!note?.trim()) return
+        const percent = decision === 'customer_refund' ? 100 : decision === 'technician_paid' ? 0 : Number(prompt('Refund percentage (0–100):') || 0)
+        loading(true)
+        try { await resolveDispute(id, decision, note.trim(), percent); toast('Dispute resolved.', 'success'); await render() } catch (error) { toast(error.message, 'error') }
+        loading(false)
+      }
+      window.refresh = async () => { loading(true); try { await render() } catch (error) { toast(error.message, 'error') }; loading(false) }
+      ;(async () => { if (!await requireAuth(['admin'])) return; await refresh() })()
+    </script>
+  </body>
+</html>

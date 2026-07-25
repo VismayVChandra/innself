@@ -1,35 +1,61 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Innself — Admin Dashboard</title>
-<link rel="stylesheet" href="../styles.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
-</head><body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Innself — Admin dashboard</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  </head>
+  <body>
+    <div id="loading"><div class="spinner"></div></div>
+    <div id="toast"></div>
+    <main class="page">
+      <header class="topbar">
+        <div><span class="topbar-title">Admin dashboard</span><p>Innself operations</p></div>
+        <button class="back-btn" onclick="refresh()"><i class="ti ti-refresh"></i></button>
+      </header>
+      <section style="padding:16px 12px">
+        <div id="stats" class="grid2"></div>
+        <h2 style="margin:20px 2px 10px">Quick actions</h2>
+        <div class="grid2">
+          <button class="card2" style="text-align:left;cursor:pointer" onclick="go('/admin/kyc.html')"><i class="ti ti-id-badge" style="color:var(--teal);font-size:22px"></i><h3 style="margin-top:6px">KYC queue</h3><p>Verify technicians</p></button>
+          <button class="card2" style="text-align:left;cursor:pointer" onclick="go('/admin/disputes.html')"><i class="ti ti-scale" style="color:var(--amber);font-size:22px"></i><h3 style="margin-top:6px">Disputes</h3><p>Resolve customer issues</p></button>
+          <button class="card2" style="text-align:left;cursor:pointer" onclick="go('/admin/users.html')"><i class="ti ti-users" style="color:var(--purple);font-size:22px"></i><h3 style="margin-top:6px">Users</h3><p>Manage accounts</p></button>
+          <button class="card2" style="text-align:left;cursor:pointer" onclick="toast('Review moderation is available from the Supabase admin tools.')"><i class="ti ti-star" style="color:var(--amber);font-size:22px"></i><h3 style="margin-top:6px">Reviews</h3><p>Moderate feedback</p></button>
+        </div>
+        <div class="row-between" style="margin:22px 2px 10px"><h2>Recent activity</h2><button class="btn btn-sm btn-secondary" onclick="refresh()">Refresh</button></div>
+        <div id="activity"></div>
+      </section>
+    </main>
+    <script type="module">
+      import { requireAuth, getAdminStats, getActivityFeed, toast, loading } from '../supabase.js'
 
-<div id="loading"><div class="spinner"></div></div>
-<div id="toast"></div>
+      const labels = { total_users: 'Total users', total_customers: 'Customers', total_technicians: 'Technicians', open_jobs: 'Open jobs', pending_kyc: 'Pending KYC', open_disputes: 'Open disputes' }
+      const safe = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]))
+      window.go = url => { location.href = url }
 
-<div class="page">
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
-    <span class="topbar-title">Admin Dashboard</span>
-    <div style="width:28px"></div>
-  </div>
+      async function render() {
+        const [stats, activity] = await Promise.all([getAdminStats(), getActivityFeed()])
+        const entries = Object.entries(stats || {}).filter(([, value]) => typeof value === 'number').slice(0, 6)
+        document.getElementById('stats').innerHTML = entries.length ? entries.map(([key, value]) => `
+          <div class="card"><p>${labels[key] || key.replaceAll('_', ' ')}</p><h1 style="margin-top:5px">${safe(value)}</h1></div>
+        `).join('') : '<div class="card"><p>No dashboard metrics are available yet.</p></div>'
+        document.getElementById('activity').innerHTML = activity.length ? activity.map(item => `
+          <div class="card2"><h3>${safe(item.title || item.action || item.event_type || 'Activity')}</h3><p>${safe(item.description || item.message || item.created_at || '')}</p></div>
+        `).join('') : '<div class="card"><p>No recent activity.</p></div>'
+      }
 
-  <div id="content" style="padding:12px">Loading...</div>
-</div>
+      window.refresh = async () => {
+        loading(true)
+        try { await render() } catch (error) { toast(error.message, 'error') }
+        loading(false)
+      }
 
-<script type="module">
-import{requireAuth,toast,loading}from'../supabase.js'
-;(async()=>{
-  const user=await requireAuth(['admin'])
-  if(!user)return
-  loading(true)
-  try{
-    // load dashboard data
-  }catch(e){toast(e.message,'error')}
-  loading(false)
-})()
-</script>
-</body></html>
+      ;(async () => {
+        if (!await requireAuth(['admin'])) return
+        await refresh()
+      })()
+    </script>
+  </body>
+</html>

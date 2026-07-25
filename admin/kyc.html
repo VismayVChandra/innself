@@ -1,63 +1,41 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Innself — KYC Verification</title>
-<link rel="stylesheet" href="../styles.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
-</head><body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Innself — KYC verification</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  </head>
+  <body>
+    <div id="loading"><div class="spinner"></div></div>
+    <div id="toast"></div>
+    <main class="page">
+      <header class="topbar"><button class="back-btn" onclick="go('/admin/dashboard.html')"><i class="ti ti-arrow-left"></i></button><span class="topbar-title">KYC verification</span><button class="back-btn" onclick="refresh()"><i class="ti ti-refresh"></i></button></header>
+      <section id="content" style="padding:16px 12px"></section>
+    </main>
+    <script type="module">
+      import { requireAuth, getKYCQueue, reviewKYC, toast, loading } from '../supabase.js'
+      const safe = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]))
+      window.go = url => { location.href = url }
 
-<div id="loading"><div class="spinner"></div></div>
-<div id="toast"></div>
+      async function render() {
+        const queue = await getKYCQueue()
+        document.getElementById('content').innerHTML = queue.length ? queue.map(item => {
+          const id = item.technician_id || item.id
+          return `<article class="card"><div class="row-between"><div><h2>${safe(item.name || 'Technician')}</h2><p>${safe(item.email || '')}</p></div><span class="badge badge-amber">${safe(item.status || 'pending')}</span></div>${item.kyc_doc_url ? `<a href="${safe(item.kyc_doc_url)}" target="_blank" rel="noopener" class="btn btn-secondary" style="margin-top:14px">View submitted document</a>` : '<p style="margin-top:12px">No document URL supplied.</p>'}<div class="btn-row" style="margin-top:10px"><button class="btn btn-primary" onclick="decide('${id}','approved')">Approve</button><button class="btn btn-danger" onclick="decide('${id}','rejected')">Reject</button></div></article>`
+        }).join('') : '<div class="card" style="text-align:center"><i class="ti ti-circle-check" style="font-size:30px;color:var(--teal)"></i><h2 style="margin-top:8px">KYC queue is clear</h2><p>There are no pending technician verifications.</p></div>'
+      }
 
-<div class="page">
-  <!-- TOP BAR -->
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i></button>
-    <span class="topbar-title">KYC Verification</span>
-    <div style="width:28px"></div>
-  </div>
-
-  <!-- YOUR UI GOES HERE -->
-  <div id="content" style="padding:12px">
-    Loading...
-  </div>
-</div>
-
-<script type="module">
-import{requireAuth,toast,loading}from'../supabase.js'
-
-function go(url){window.location.href=url}
-window.go=go
-
-;(async()=>{
-  const user=await requireAuth(['admin'])
-  if(!user)return
-
-  loading(true)
-  try{
-    // Fetch and render KYC submissions
-    // const kycs = await getPendingKYC()
-    // renderKYC(kycs)
-  }catch(e){toast(e.message,'error')}
-  loading(false)
-})()
-
-function renderKYC(kycs){
-  const el=document.getElementById('content')
-  if(!kycs.length){
-    el.innerHTML='<p style="text-align:center;margin-top:40px">No pending KYC requests</p>'
-    return
-  }
-  el.innerHTML=kycs.map(k=>`
-    <div class="card2" onclick="go('/admin/kyc-detail.html?id=${k.id}')">
-      <div class="row-between">
-        <h3>${k.name}</h3>
-        <span class="badge badge-${k.status==='verified'?'green':'amber'}">${k.status}</span>
-      </div>
-      <p>${k.email}</p>
-    </div>
-  `).join('')
-}
-</script>
-</body></html>
+      window.decide = async (techId, decision) => {
+        const reason = decision === 'rejected' ? prompt('Why is this KYC being rejected?') : ''
+        if (decision === 'rejected' && !reason?.trim()) return
+        loading(true)
+        try { await reviewKYC(techId, decision, reason); toast(`KYC ${decision}.`, 'success'); await render() } catch (error) { toast(error.message, 'error') }
+        loading(false)
+      }
+      window.refresh = async () => { loading(true); try { await render() } catch (error) { toast(error.message, 'error') }; loading(false) }
+      ;(async () => { if (!await requireAuth(['admin'])) return; await refresh() })()
+    </script>
+  </body>
+</html>
