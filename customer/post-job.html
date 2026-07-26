@@ -117,4 +117,498 @@ import{
 })()
 </script>
 </body></html> -->
-cat > /home/claude/innself/customer/post-job.html << 'ENDHTML' <!DOCTYPE html> <html lang="en"> <head>   <meta charset="UTF-8"/>   <meta name="viewport" content="width=device-width, initial-scale=1"/>   <title>Innself — Post a job</title>   <link rel="stylesheet" href="../styles.css"/>   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>   <style>      /* ── Step indicator ── */     .step-bar {       display: flex;       align-items: center;       gap: 6px;       padding: 14px 16px 4px;     }     .step-segment {       flex: 1;       height: 3px;       border-radius: 2px;       background: var(--border);       transition: background .3s;     }     .step-segment.done    { background: var(--teal); }     .step-segment.current { background: var(--teal); }      .step-label {       font-size: 11px;       color: var(--muted);       text-align: center;       padding: 4px 0 12px;     }      /* ── Step panels ── */     .step-panel { display: none; padding: 6px 14px 20px; }     .step-panel.active { display: block; }      /* ── Category chips ── */     .cat-chips {       display: grid;       grid-template-columns: 1fr 1fr;       gap: 8px;       margin-bottom: 16px;     }     .cat-chip {       display: flex;       align-items: center;       gap: 9px;       padding: 10px 12px;       border-radius: 10px;       border: 0.5px solid var(--border);       background: var(--card);       cursor: pointer;       transition: border-color .15s, background .15s;     }     .cat-chip:hover   { border-color: var(--teal); }     .cat-chip.selected {       border-color: var(--teal);       background: var(--teal-l);     }     .cat-chip i  { font-size: 20px; color: var(--teal-d); flex-shrink: 0; }     .cat-chip span { font-size: 12px; font-weight: 500; color: var(--text); }      /* ── Photo strip ── */     .photo-strip {       display: flex;       gap: 8px;       overflow-x: auto;       padding-bottom: 4px;       margin-bottom: 14px;     }     .photo-thumb {       width: 72px;       height: 72px;       border-radius: 8px;       object-fit: cover;       border: 0.5px solid var(--border);       flex-shrink: 0;     }     .photo-add {       width: 72px;       height: 72px;       border-radius: 8px;       border: 1.5px dashed var(--teal);       display: flex;       flex-direction: column;       align-items: center;       justify-content: center;       cursor: pointer;       flex-shrink: 0;       background: var(--teal-l);     }     .photo-add i    { font-size: 22px; color: var(--teal-d); }     .photo-add span { font-size: 10px; color: var(--teal-d); margin-top: 3px; }      /* ── Map placeholder ── */     .map-box {       background: var(--card);       border: 0.5px solid var(--border);       border-radius: 10px;       height: 130px;       display: flex;       flex-direction: column;       align-items: center;       justify-content: center;       gap: 6px;       margin-bottom: 10px;       cursor: pointer;     }     .map-box i { font-size: 28px; color: var(--teal-d); }     .map-box span { font-size: 12px; color: var(--muted); }      /* ── Budget slider track ── */     .budget-row {       display: flex;       gap: 10px;       align-items: center;       margin-bottom: 14px;     }     .budget-row input[type=number] {       flex: 1;       text-align: center;     }     .budget-sep {       font-size: 12px;       color: var(--muted);       flex-shrink: 0;     }      /* ── Urgent toggle ── */     .toggle-row {       display: flex;       align-items: center;       justify-content: space-between;       padding: 11px 0;       border-top: 0.5px solid var(--border);     }     .toggle-track {       width: 42px;       height: 24px;       border-radius: 12px;       background: var(--border2);       position: relative;       cursor: pointer;       transition: background .2s;       flex-shrink: 0;     }     .toggle-track.on { background: var(--teal); }     .toggle-thumb {       width: 20px;       height: 20px;       border-radius: 50%;       background: #fff;       position: absolute;       top: 2px;       left: 2px;       transition: left .2s;       box-shadow: 0 1px 3px rgba(0,0,0,.25);     }     .toggle-track.on .toggle-thumb { left: 20px; }      /* ── Summary card (step 3) ── */     .summary-card {       background: var(--card2);       border-radius: 10px;       padding: 12px 14px;       margin-bottom: 16px;       border: 0.5px solid var(--border);     }     .summary-row {       display: flex;       gap: 8px;       align-items: flex-start;       padding: 6px 0;       font-size: 12px;       border-bottom: 0.5px solid var(--border);     }     .summary-row:last-child { border-bottom: none; }     .summary-row i { font-size: 14px; color: var(--teal-d); flex-shrink: 0; margin-top: 1px; }     .summary-row .s-label { color: var(--muted); width: 70px; flex-shrink: 0; }     .summary-row .s-value { color: var(--text); flex: 1; }      /* ── Nav buttons ── */     .nav-btns {       display: flex;       gap: 10px;       margin-top: 20px;     }     .nav-btns .btn { flex: 1; }      /* ── Char counter ── */     .char-count {       font-size: 10px;       color: var(--muted);       text-align: right;       margin-top: -8px;       margin-bottom: 12px;     }     .char-count.warn { color: var(--red); }    </style> </head> <body>  <div id="loading"><div class="spinner"></div></div> <div id="toast"></div>  <div class="page">    <!-- ── Top bar ── -->   <div class="topbar">     <button class="back-btn" id="back-btn" onclick="handleBack()">       <i class="ti ti-arrow-left"></i>     </button>     <span class="topbar-title" id="page-title">Post a job</span>     <div style="width:28px"></div>   </div>    <!-- ── Step progress bar ── -->   <div class="step-bar">     <div class="step-segment done" id="seg0"></div>     <div class="step-segment" id="seg1"></div>     <div class="step-segment" id="seg2"></div>   </div>   <div class="step-label" id="step-label">Step 1 of 3 — Service details</div>     <!-- ════════════════════════════════════════════ -->   <!--  STEP 1 — Service details                    -->   <!-- ════════════════════════════════════════════ -->   <div class="step-panel active" id="panel-1">      <label class="label" style="margin-bottom:10px">       What kind of service do you need?     </label>      <div class="cat-chips" id="cat-chips">       <!-- Rendered by JS -->     </div>      <label class="label">Job title <span style="color:var(--red)">*</span></label>     <input       type="text"       id="title"       placeholder="e.g. Fix bedroom AC unit"       maxlength="120"       style="margin-bottom:4px"       oninput="updateCharCount('title','title-count',120)"     />     <div class="char-count" id="title-count">0 / 120</div>      <label class="label">Describe the problem <span style="color:var(--red)">*</span></label>     <textarea       id="desc"       placeholder="What exactly needs to be done? The more detail you give, the better your bids will be.&#10;&#10;e.g. My split AC is not cooling. It turns on but the compressor seems to trip after 5 minutes."       maxlength="2000"       style="min-height:110px;margin-bottom:4px"       oninput="updateCharCount('desc','desc-count',2000)"     ></textarea>     <div class="char-count" id="desc-count">0 / 2000</div>      <label class="label" style="margin-top:6px">       Photos — optional, up to 5       <span style="color:var(--muted);font-weight:400">(help technicians understand the job)</span>     </label>     <div class="photo-strip" id="photo-strip">       <div class="photo-add" onclick="document.getElementById('photo-input').click()">         <i class="ti ti-camera"></i>         <span>Add photo</span>       </div>     </div>     <input type="file" id="photo-input" accept="image/*" multiple style="display:none"            onchange="handlePhotos(event)"/>      <div class="nav-btns">       <button class="btn btn-primary" onclick="goStep(2)">Next &rarr;</button>     </div>   </div>     <!-- ════════════════════════════════════════════ -->   <!--  STEP 2 — Location                           -->   <!-- ════════════════════════════════════════════ -->   <div class="step-panel" id="panel-2">      <label class="label">Service address <span style="color:var(--red)">*</span></label>     <input       type="text"       id="address"       placeholder="e.g. 14 Koramangala 4th Block, Bengaluru 560034"       style="margin-bottom:10px"     />      <!-- Map / GPS box -->     <div class="map-box" onclick="useGPS()">       <i class="ti ti-current-location" id="gps-icon"></i>       <span id="gps-label">Tap to use my current location</span>     </div>      <div       id="gps-result"       style="display:none;background:var(--teal-l);border:0.5px solid var(--teal);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--teal-d)"     >       <i class="ti ti-circle-check"></i>       <span id="gps-coords">Location captured</span>       &nbsp;·&nbsp;       <span style="cursor:pointer;text-decoration:underline" onclick="clearGPS()">Clear</span>     </div>      <!-- Hidden lat/lng fields -->     <input type="hidden" id="lat" value="0"/>     <input type="hidden" id="lng" value="0"/>      <div       style="background:var(--card2);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--muted)"     >       <i class="ti ti-info-circle"></i>       Your exact address is only shared with the technician you hire — never with other users.     </div>      <div class="nav-btns">       <button class="btn btn-secondary" onclick="goStep(1)">&larr; Back</button>       <button class="btn btn-primary"   onclick="goStep(3)">Next &rarr;</button>     </div>   </div>     <!-- ════════════════════════════════════════════ -->   <!--  STEP 3 — Budget, timing & review            -->   <!-- ════════════════════════════════════════════ -->   <div class="step-panel" id="panel-3">      <!-- Summary of what was filled in steps 1–2 -->     <div class="summary-card" id="summary-card">       <div style="font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Your job summary</div>       <div class="summary-row">         <i class="ti ti-category"></i>         <span class="s-label">Category</span>         <span class="s-value" id="sum-cat">—</span>       </div>       <div class="summary-row">         <i class="ti ti-file-text"></i>         <span class="s-label">Title</span>         <span class="s-value" id="sum-title">—</span>       </div>       <div class="summary-row">         <i class="ti ti-map-pin"></i>         <span class="s-label">Location</span>         <span class="s-value" id="sum-addr">—</span>       </div>     </div>      <label class="label">Budget range — optional</label>     <p style="font-size:12px;color:var(--muted);margin:-4px 0 10px">       Setting a budget helps attract relevant bids. Leave blank if you're not sure.     </p>     <div class="budget-row">       <div style="flex:1">         <label class="label" style="margin-bottom:4px">Minimum (₹)</label>         <input type="number" id="bmin" placeholder="e.g. 500" min="0"/>       </div>       <div class="budget-sep" style="margin-top:20px">to</div>       <div style="flex:1">         <label class="label" style="margin-bottom:4px">Maximum (₹)</label>         <input type="number" id="bmax" placeholder="e.g. 2000" min="0"/>       </div>     </div>      <label class="label">Preferred date & time — optional</label>     <input       type="datetime-local"       id="pstart"       style="margin-bottom:16px"     />      <!-- Urgent toggle -->     <div class="toggle-row">       <div>         <div style="font-size:13px;font-weight:500">Mark as urgent</div>         <div style="font-size:11px;color:var(--muted);margin-top:2px">           Sends a priority alert to nearby technicians right now         </div>       </div>       <div class="toggle-track" id="urg-track" onclick="toggleUrgent()">         <div class="toggle-thumb"></div>       </div>     </div>      <div class="nav-btns" style="margin-top:20px">       <button class="btn btn-secondary" onclick="goStep(2)">&larr; Back</button>       <button class="btn btn-primary" id="submit-btn" onclick="doPost()">         <i class="ti ti-send"></i> Post job       </button>     </div>      <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px">       You can cancel for free before accepting any bid.     </p>   </div>  </div><!-- end .page -->  <nav class="bottom-nav">   <button class="nav-item" onclick="go('/customer/home.html')">     <i class="ti ti-home"></i>Home   </button>   <button class="nav-item active">     <i class="ti ti-plus-circle"></i>Post job   </button>   <button class="nav-item"><i class="ti ti-message"></i>Chat</button>   <button class="nav-item" onclick="go('/customer/profile.html')">     <i class="ti ti-user"></i>Profile   </button> </nav>   <!-- ═══════════════════════════════════════════════════════════ --> <!--  JAVASCRIPT                                                  --> <!-- ═══════════════════════════════════════════════════════════ --> <script type="module">  import {   requireAuth,   createJob,   uploadFile,   toast,   loading,   fmtMoney } from '../supabase.js'  // ── Globals ─────────────────────────────────────────────────── const go = url => window.location.href = url window.go = go  let currentStep  = 1      // 1 | 2 | 3 let selectedCat  = ''     // selected category value let isUrgent     = false  // urgent toggle state let photoFiles   = []     // selected File objects (max 5) let photoUrls    = []     // Supabase Storage URLs after upload  // ── Categories ──────────────────────────────────────────────── const CATEGORIES = [   { icon: 'ti-plug',          label: 'Electrical',     value: 'electrical'      },   { icon: 'ti-droplet',       label: 'Plumbing',       value: 'plumbing'        },   { icon: 'ti-wind',          label: 'AC & HVAC',      value: 'hvac'            },   { icon: 'ti-hammer',        label: 'Carpentry',      value: 'carpentry'       },   { icon: 'ti-brush',         label: 'Painting',       value: 'painting'        },   { icon: 'ti-sparkles',      label: 'Cleaning',       value: 'cleaning'        },   { icon: 'ti-bug',           label: 'Pest Control',   value: 'pest_control'    },   { icon: 'ti-washing-machine',label: 'Appliance',     value: 'appliance_repair'},   { icon: 'ti-device-laptop', label: 'IT Repair',      value: 'it_repair'       },   { icon: 'ti-truck',         label: 'Moving',         value: 'moving'          },   { icon: 'ti-palette',       label: 'Interior',       value: 'painting'        },   { icon: 'ti-dots-circle',   label: 'Other',          value: 'other'           }, ]  // ── Build category chip grid ────────────────────────────────── function buildCategoryChips() {   const grid = document.getElementById('cat-chips')   grid.innerHTML = CATEGORIES.map(c => `     <div       class="cat-chip ${selectedCat === c.value ? 'selected' : ''}"       id="chip-${c.value}"       onclick="selectCat('${c.value}')"     >       <i class="ti ${c.icon}"></i>       <span>${c.label}</span>     </div>   `).join('') }  window.selectCat = function(val) {   selectedCat = val   // Update chip UI   document.querySelectorAll('.cat-chip').forEach(el => el.classList.remove('selected'))   const chip = document.getElementById('chip-' + val)   if (chip) chip.classList.add('selected') }  // ── Char counter ────────────────────────────────────────────── window.updateCharCount = function(inputId, countId, max) {   const len = document.getElementById(inputId).value.length   const el  = document.getElementById(countId)   el.textContent = len + ' / ' + max   el.classList.toggle('warn', len > max * 0.9) }  // ── Photo handling ──────────────────────────────────────────── window.handlePhotos = function(event) {   const files = Array.from(event.target.files)   const remaining = 5 - photoFiles.length    if (!files.length) return   if (remaining <= 0) {     toast('Maximum 5 photos allowed', 'error')     return   }    const toAdd = files.slice(0, remaining)   if (files.length > remaining) {     toast(`Only adding ${remaining} more photo(s) — limit is 5`, 'info')   }    toAdd.forEach(file => {     if (!file.type.startsWith('image/')) {       toast('Only image files are supported', 'error')       return     }     photoFiles.push(file)      // Preview     const reader = new FileReader()     reader.onload = e => {       const strip = document.getElementById('photo-strip')       const addBtn = strip.querySelector('.photo-add')        const img = document.createElement('img')       img.className = 'photo-thumb'       img.src = e.target.result       img.title = file.name        // Long-press to remove       img.onclick = () => removePhoto(file, img)       img.title = 'Tap to remove'        strip.insertBefore(img, addBtn)     }     reader.readAsDataURL(file)   })    // Hide add button when at limit   const addBtn = document.querySelector('.photo-add')   if (addBtn) addBtn.style.display = photoFiles.length >= 5 ? 'none' : 'flex'    // Clear input so same file can be re-selected   event.target.value = '' }  function removePhoto(file, imgEl) {   photoFiles = photoFiles.filter(f => f !== file)   imgEl.remove()   const addBtn = document.querySelector('.photo-add')   if (addBtn) addBtn.style.display = 'flex' }  // ── GPS location ────────────────────────────────────────────── window.useGPS = function() {   if (!navigator.geolocation) {     toast('GPS not available on this device', 'error')     return   }    const icon  = document.getElementById('gps-icon')   const label = document.getElementById('gps-label')   icon.className  = 'ti ti-loader'   label.textContent = 'Getting your location...'    navigator.geolocation.getCurrentPosition(     pos => {       const lat = pos.coords.latitude.toFixed(6)       const lng = pos.coords.longitude.toFixed(6)        document.getElementById('lat').value = lat       document.getElementById('lng').value = lng       document.getElementById('gps-coords').textContent =         `${lat}, ${lng} (accuracy ±${Math.round(pos.coords.accuracy)}m)`        document.getElementById('gps-result').style.display = 'block'        // Pre-fill address if empty       if (!document.getElementById('address').value.trim()) {         document.getElementById('address').value =           `GPS location (${lat}, ${lng})`       }        icon.className  = 'ti ti-current-location'       label.textContent = 'Tap to update location'       toast('Location captured!', 'success')     },     err => {       icon.className  = 'ti ti-current-location'       label.textContent = 'Tap to use my current location'       const msgs = {         1: 'Location permission denied. Please allow it in browser settings.',         2: 'Location unavailable. Enter address manually.',         3: 'Location timed out. Try again or enter address manually.',       }       toast(msgs[err.code] || 'Could not get location', 'error')     },     { timeout: 10000, enableHighAccuracy: true }   ) }  window.clearGPS = function() {   document.getElementById('lat').value = '0'   document.getElementById('lng').value = '0'   document.getElementById('gps-result').style.display = 'none' }  // ── Urgent toggle ───────────────────────────────────────────── window.toggleUrgent = function() {   isUrgent = !isUrgent   document.getElementById('urg-track').classList.toggle('on', isUrgent) }  // ── Step navigation ─────────────────────────────────────────── const STEP_LABELS = [   'Step 1 of 3 — Service details',   'Step 2 of 3 — Location',   'Step 3 of 3 — Budget & review', ] const STEP_TITLES = ['Post a job', 'Location', 'Budget & timing']  window.goStep = function(step) {   // Validate before advancing   if (step > currentStep) {     const err = validateStep(currentStep)     if (err) { toast(err, 'error'); return }   }    // Update summary when entering step 3   if (step === 3) updateSummary()    // Update UI   ;[1, 2, 3].forEach(s => {     document.getElementById('panel-' + s).classList.toggle('active', s === step)     document.getElementById('seg' + (s - 1)).classList.toggle('done', s <= step)     document.getElementById('seg' + (s - 1)).classList.toggle('current', s === step)   })    document.getElementById('step-label').textContent = STEP_LABELS[step - 1]   document.getElementById('page-title').textContent  = STEP_TITLES[step - 1]    currentStep = step   window.scrollTo({ top: 0, behavior: 'smooth' }) }  // ── Back button ─────────────────────────────────────────────── window.handleBack = function() {   if (currentStep === 1) {     go('/customer/home.html')   } else {     goStep(currentStep - 1)   } }  // ── Validation ──────────────────────────────────────────────── function validateStep(step) {   if (step === 1) {     if (!selectedCat)       return 'Please select a service category'     if (document.getElementById('title').value.trim().length < 5)       return 'Job title must be at least 5 characters'     if (document.getElementById('desc').value.trim().length < 20)       return 'Please describe the problem in more detail (minimum 20 characters)'   }   if (step === 2) {     if (!document.getElementById('address').value.trim())       return 'Please enter a service address'   }   return null  // no error }  // ── Update summary in step 3 ────────────────────────────────── function updateSummary() {   const cat   = CATEGORIES.find(c => c.value === selectedCat)   const title = document.getElementById('title').value.trim()   const addr  = document.getElementById('address').value.trim()    document.getElementById('sum-cat').textContent   = cat ? cat.label : selectedCat   document.getElementById('sum-title').textContent  = title   document.getElementById('sum-addr').textContent   = addr }  // ── Photo upload to Supabase Storage ───────────────────────── async function uploadPhotos() {   if (!photoFiles.length) return []    const urls = []   for (const file of photoFiles) {     const path = `jobs/${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`     try {       const storagePath = await uploadFile('job-photos', file, path)       urls.push(storagePath)     } catch (e) {       // Non-fatal — skip failed photo, continue       console.warn('Photo upload failed:', e.message)     }   }   return urls }  // ── Submit ──────────────────────────────────────────────────── window.doPost = async function() {   // Final validation   const err = validateStep(1) || validateStep(2)   if (err) { toast(err, 'error'); return }    const btn = document.getElementById('submit-btn')   btn.disabled = true   btn.innerHTML = '<i class="ti ti-loader"></i> Posting...'    loading(true)    try {     // 1. Upload photos (non-blocking if any fail)     if (photoFiles.length) {       toast('Uploading photos...', 'info', 2000)       photoUrls = await uploadPhotos()     }      // 2. Parse optional fields     const bminVal   = parseFloat(document.getElementById('bmin').value)     const bmaxVal   = parseFloat(document.getElementById('bmax').value)     const pstartVal = document.getElementById('pstart').value      // Budget sanity check     if (!isNaN(bminVal) && !isNaN(bmaxVal) && bmaxVal < bminVal) {       toast('Maximum budget cannot be less than minimum', 'error')       btn.disabled = false       btn.innerHTML = '<i class="ti ti-send"></i> Post job'       loading(false)       return     }      // 3. Call the create_job RPC     const job = await createJob({       category:        selectedCat,       title:           document.getElementById('title').value.trim(),       description:     document.getElementById('desc').value.trim(),       photo_urls:      photoUrls,       address:         document.getElementById('address').value.trim(),       lat:             parseFloat(document.getElementById('lat').value) || 0,       lng:             parseFloat(document.getElementById('lng').value) || 0,       budget_min:      isNaN(bminVal)   ? null : bminVal,       budget_max:      isNaN(bmaxVal)   ? null : bmaxVal,       preferred_start: pstartVal ? new Date(pstartVal).toISOString() : null,       is_urgent:       isUrgent,     })      toast('Job posted! Waiting for bids...', 'success', 2000)      // Navigate to the bids inbox for this job     setTimeout(() => go('/customer/bids.html?job=' + job.id), 1300)    } catch (e) {     toast(e.message, 'error')     btn.disabled = false     btn.innerHTML = '<i class="ti ti-send"></i> Post job'   }    loading(false) }  // ── Initialise ──────────────────────────────────────────────── ;(async () => {    await requireAuth(['customer'])    buildCategoryChips()    // Pre-select category if passed via URL (?cat=electrical)   const urlCat = new URLSearchParams(window.location.search).get('cat')   if (urlCat) {     selectedCat = urlCat     buildCategoryChips()   // rebuild with selection applied   }    // Set default datetime to tomorrow morning   const tomorrow = new Date()   tomorrow.setDate(tomorrow.getDate() + 1)   tomorrow.setHours(10, 0, 0, 0)   document.getElementById('pstart').value =     tomorrow.toISOString().slice(0, 16)  })()  </script> </body> </html> ENDHTML echo "Lines: $(wc -l < /home/claude/innself/customer/post-job.html)"`
+cat > /home/claude/innself/customer/post-job.html << 'ENDHTML' <!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Innself — Post a job</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"
+    />
+    <style>
+      /* ── Step indicator ── */
+      .step-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 14px 16px 4px;
+      }
+      .step-segment {
+        flex: 1;
+        height: 3px;
+        border-radius: 2px;
+        background: var(--border);
+        transition: background 0.3s;
+      }
+      .step-segment.done {
+        background: var(--teal);
+      }
+      .step-segment.current {
+        background: var(--teal);
+      }
+      .step-label {
+        font-size: 11px;
+        color: var(--muted);
+        text-align: center;
+        padding: 4px 0 12px;
+      } /* ── Step panels ── */
+      .step-panel {
+        display: none;
+        padding: 6px 14px 20px;
+      }
+      .step-panel.active {
+        display: block;
+      } /* ── Category chips ── */
+      .cat-chips {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .cat-chip {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 0.5px solid var(--border);
+        background: var(--card);
+        cursor: pointer;
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+      }
+      .cat-chip:hover {
+        border-color: var(--teal);
+      }
+      .cat-chip.selected {
+        border-color: var(--teal);
+        background: var(--teal-l);
+      }
+      .cat-chip i {
+        font-size: 20px;
+        color: var(--teal-d);
+        flex-shrink: 0;
+      }
+      .cat-chip span {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text);
+      } /* ── Photo strip ── */
+      .photo-strip {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        margin-bottom: 14px;
+      }
+      .photo-thumb {
+        width: 72px;
+        height: 72px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 0.5px solid var(--border);
+        flex-shrink: 0;
+      }
+      .photo-add {
+        width: 72px;
+        height: 72px;
+        border-radius: 8px;
+        border: 1.5px dashed var(--teal);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        background: var(--teal-l);
+      }
+      .photo-add i {
+        font-size: 22px;
+        color: var(--teal-d);
+      }
+      .photo-add span {
+        font-size: 10px;
+        color: var(--teal-d);
+        margin-top: 3px;
+      } /* ── Map placeholder ── */
+      .map-box {
+        background: var(--card);
+        border: 0.5px solid var(--border);
+        border-radius: 10px;
+        height: 130px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin-bottom: 10px;
+        cursor: pointer;
+      }
+      .map-box i {
+        font-size: 28px;
+        color: var(--teal-d);
+      }
+      .map-box span {
+        font-size: 12px;
+        color: var(--muted);
+      } /* ── Budget slider track ── */
+      .budget-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+      .budget-row input[type="number"] {
+        flex: 1;
+        text-align: center;
+      }
+      .budget-sep {
+        font-size: 12px;
+        color: var(--muted);
+        flex-shrink: 0;
+      } /* ── Urgent toggle ── */
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 11px 0;
+        border-top: 0.5px solid var(--border);
+      }
+      .toggle-track {
+        width: 42px;
+        height: 24px;
+        border-radius: 12px;
+        background: var(--border2);
+        position: relative;
+        cursor: pointer;
+        transition: background 0.2s;
+        flex-shrink: 0;
+      }
+      .toggle-track.on {
+        background: var(--teal);
+      }
+      .toggle-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #fff;
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        transition: left 0.2s;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      }
+      .toggle-track.on .toggle-thumb {
+        left: 20px;
+      } /* ── Summary card (step 3) ── */
+      .summary-card {
+        background: var(--card2);
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 16px;
+        border: 0.5px solid var(--border);
+      }
+      .summary-row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        padding: 6px 0;
+        font-size: 12px;
+        border-bottom: 0.5px solid var(--border);
+      }
+      .summary-row:last-child {
+        border-bottom: none;
+      }
+      .summary-row i {
+        font-size: 14px;
+        color: var(--teal-d);
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .summary-row .s-label {
+        color: var(--muted);
+        width: 70px;
+        flex-shrink: 0;
+      }
+      .summary-row .s-value {
+        color: var(--text);
+        flex: 1;
+      } /* ── Nav buttons ── */
+      .nav-btns {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .nav-btns .btn {
+        flex: 1;
+      } /* ── Char counter ── */
+      .char-count {
+        font-size: 10px;
+        color: var(--muted);
+        text-align: right;
+        margin-top: -8px;
+        margin-bottom: 12px;
+      }
+      .char-count.warn {
+        color: var(--red);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading"><div class="spinner"></div></div>
+    <div id="toast"></div>
+    <div class="page">
+      <!-- ── Top bar ── -->
+      <div class="topbar">
+        <button class="back-btn" id="back-btn" onclick="handleBack()">
+          <i class="ti ti-arrow-left"></i>
+        </button>
+        <span class="topbar-title" id="page-title">Post a job</span>
+        <div style="width: 28px"></div>
+      </div>
+      <!-- ── Step progress bar ── -->
+      <div class="step-bar">
+        <div class="step-segment done" id="seg0"></div>
+        <div class="step-segment" id="seg1"></div>
+        <div class="step-segment" id="seg2"></div>
+      </div>
+      <div class="step-label" id="step-label">
+        Step 1 of 3 — Service details
+      </div>
+      <!-- ════════════════════════════════════════════ -->
+      <!--  STEP 1 — Service details                    -->
+      <!-- ════════════════════════════════════════════ -->
+      <div class="step-panel active" id="panel-1">
+        <label class="label" style="margin-bottom: 10px">
+          What kind of service do you need?
+        </label>
+        <div class="cat-chips" id="cat-chips"><!-- Rendered by JS --></div>
+        <label class="label"
+          >Job title <span style="color: var(--red)">*</span></label
+        >
+        <input
+          type="text"
+          id="title"
+          placeholder="e.g. Fix bedroom AC unit"
+          maxlength="120"
+          style="margin-bottom: 4px"
+          oninput="updateCharCount('title', 'title-count', 120)"
+        />
+        <div class="char-count" id="title-count">0 / 120</div>
+        <label class="label"
+          >Describe the problem <span style="color: var(--red)">*</span></label
+        >
+        <textarea
+          id="desc"
+          placeholder="What exactly needs to be done? The more detail you give, the better your bids will be.&#10;&#10;e.g. My split AC is not cooling. It turns on but the compressor seems to trip after 5 minutes."
+          maxlength="2000"
+          style="min-height: 110px; margin-bottom: 4px"
+          oninput="updateCharCount('desc', 'desc-count', 2000)"
+        ></textarea>
+        <div class="char-count" id="desc-count">0 / 2000</div>
+        <label class="label" style="margin-top: 6px">
+          Photos — optional, up to 5
+          <span style="color: var(--muted); font-weight: 400"
+            >(help technicians understand the job)</span
+          >
+        </label>
+        <div class="photo-strip" id="photo-strip">
+          <div
+            class="photo-add"
+            onclick="document.getElementById('photo-input').click()"
+          >
+            <i class="ti ti-camera"></i> <span>Add photo</span>
+          </div>
+        </div>
+        <input
+          type="file"
+          id="photo-input"
+          accept="image/*"
+          multiple
+          style="display: none"
+          onchange="handlePhotos(event)"
+        />
+        <div class="nav-btns">
+          <button class="btn btn-primary" onclick="goStep(2)">
+            Next &rarr;
+          </button>
+        </div>
+      </div>
+      <!-- ════════════════════════════════════════════ -->
+      <!--  STEP 2 — Location                           -->
+      <!-- ════════════════════════════════════════════ -->
+      <div class="step-panel" id="panel-2">
+        <label class="label"
+          >Service address <span style="color: var(--red)">*</span></label
+        >
+        <input
+          type="text"
+          id="address"
+          placeholder="e.g. 14 Koramangala 4th Block, Bengaluru 560034"
+          style="margin-bottom: 10px"
+        />
+        <!-- Map / GPS box -->
+        <div class="map-box" onclick="useGPS()">
+          <i class="ti ti-current-location" id="gps-icon"></i>
+          <span id="gps-label">Tap to use my current location</span>
+        </div>
+        <div
+          id="gps-result"
+          style="
+            display: none;
+            background: var(--teal-l);
+            border: 0.5px solid var(--teal);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+            font-size: 12px;
+            color: var(--teal-d);
+          "
+        >
+          <i class="ti ti-circle-check"></i>
+          <span id="gps-coords">Location captured</span> &nbsp;·&nbsp;
+          <span
+            style="cursor: pointer; text-decoration: underline"
+            onclick="clearGPS()"
+            >Clear</span
+          >
+        </div>
+        <!-- Hidden lat/lng fields -->
+        <input type="hidden" id="lat" value="0" />
+        <input type="hidden" id="lng" value="0" />
+        <div
+          style="
+            background: var(--card2);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+            font-size: 12px;
+            color: var(--muted);
+          "
+        >
+          <i class="ti ti-info-circle"></i> Your exact address is only shared
+          with the technician you hire — never with other users.
+        </div>
+        <div class="nav-btns">
+          <button class="btn btn-secondary" onclick="goStep(1)">
+            &larr; Back
+          </button>
+          <button class="btn btn-primary" onclick="goStep(3)">
+            Next &rarr;
+          </button>
+        </div>
+      </div>
+      <!-- ════════════════════════════════════════════ -->
+      <!--  STEP 3 — Budget, timing & review            -->
+      <!-- ════════════════════════════════════════════ -->
+      <div class="step-panel" id="panel-3">
+        <!-- Summary of what was filled in steps 1–2 -->
+        <div class="summary-card" id="summary-card">
+          <div
+            style="
+              font-size: 12px;
+              font-weight: 500;
+              color: var(--muted);
+              margin-bottom: 6px;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            "
+          >
+            Your job summary
+          </div>
+          <div class="summary-row">
+            <i class="ti ti-category"></i> <span class="s-label">Category</span>
+            <span class="s-value" id="sum-cat">—</span>
+          </div>
+          <div class="summary-row">
+            <i class="ti ti-file-text"></i> <span class="s-label">Title</span>
+            <span class="s-value" id="sum-title">—</span>
+          </div>
+          <div class="summary-row">
+            <i class="ti ti-map-pin"></i> <span class="s-label">Location</span>
+            <span class="s-value" id="sum-addr">—</span>
+          </div>
+        </div>
+        <label class="label">Budget range — optional</label>
+        <p style="font-size: 12px; color: var(--muted); margin: -4px 0 10px">
+          Setting a budget helps attract relevant bids. Leave blank if you're
+          not sure.
+        </p>
+        <div class="budget-row">
+          <div style="flex: 1">
+            <label class="label" style="margin-bottom: 4px">Minimum (₹)</label>
+            <input type="number" id="bmin" placeholder="e.g. 500" min="0" />
+          </div>
+          <div class="budget-sep" style="margin-top: 20px">to</div>
+          <div style="flex: 1">
+            <label class="label" style="margin-bottom: 4px">Maximum (₹)</label>
+            <input type="number" id="bmax" placeholder="e.g. 2000" min="0" />
+          </div>
+        </div>
+        <label class="label">Preferred date & time — optional</label>
+        <input type="datetime-local" id="pstart" style="margin-bottom: 16px" />
+        <!-- Urgent toggle -->
+        <div class="toggle-row">
+          <div>
+            <div style="font-size: 13px; font-weight: 500">Mark as urgent</div>
+            <div style="font-size: 11px; color: var(--muted); margin-top: 2px">
+              Sends a priority alert to nearby technicians right now
+            </div>
+          </div>
+          <div class="toggle-track" id="urg-track" onclick="toggleUrgent()">
+            <div class="toggle-thumb"></div>
+          </div>
+        </div>
+        <div class="nav-btns" style="margin-top: 20px">
+          <button class="btn btn-secondary" onclick="goStep(2)">
+            &larr; Back
+          </button>
+          <button class="btn btn-primary" id="submit-btn" onclick="doPost()">
+            <i class="ti ti-send"></i> Post job
+          </button>
+        </div>
+        <p
+          style="
+            font-size: 11px;
+            color: var(--muted);
+            text-align: center;
+            margin-top: 12px;
+          "
+        >
+          You can cancel for free before accepting any bid.
+        </p>
+      </div>
+    </div>
+    <!-- end .page -->
+    <nav class="bottom-nav">
+      <button class="nav-item" onclick="go('/customer/home.html')">
+        <i class="ti ti-home"></i>Home
+      </button>
+      <button class="nav-item active">
+        <i class="ti ti-plus-circle"></i>Post job
+      </button>
+      <button class="nav-item"><i class="ti ti-message"></i>Chat</button>
+      <button class="nav-item" onclick="go('/customer/profile.html')">
+        <i class="ti ti-user"></i>Profile
+      </button>
+    </nav>
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!--  JAVASCRIPT                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <script type="module">
+      import {
+        requireAuth,
+        createJob,
+        uploadFile,
+        toast,
+        loading,
+        fmtMoney,
+      } from "../supabase.js"; // ── Globals ─────────────────────────────────────────────────── const go = url => window.location.href = url window.go = go  let currentStep  = 1      // 1 | 2 | 3 let selectedCat  = ''     // selected category value let isUrgent     = false  // urgent toggle state let photoFiles   = []     // selected File objects (max 5) let photoUrls    = []     // Supabase Storage URLs after upload  // ── Categories ──────────────────────────────────────────────── const CATEGORIES = [   { icon: 'ti-plug',          label: 'Electrical',     value: 'electrical'      },   { icon: 'ti-droplet',       label: 'Plumbing',       value: 'plumbing'        },   { icon: 'ti-wind',          label: 'AC & HVAC',      value: 'hvac'            },   { icon: 'ti-hammer',        label: 'Carpentry',      value: 'carpentry'       },   { icon: 'ti-brush',         label: 'Painting',       value: 'painting'        },   { icon: 'ti-sparkles',      label: 'Cleaning',       value: 'cleaning'        },   { icon: 'ti-bug',           label: 'Pest Control',   value: 'pest_control'    },   { icon: 'ti-washing-machine',label: 'Appliance',     value: 'appliance_repair'},   { icon: 'ti-device-laptop', label: 'IT Repair',      value: 'it_repair'       },   { icon: 'ti-truck',         label: 'Moving',         value: 'moving'          },   { icon: 'ti-palette',       label: 'Interior',       value: 'painting'        },   { icon: 'ti-dots-circle',   label: 'Other',          value: 'other'           }, ]  // ── Build category chip grid ────────────────────────────────── function buildCategoryChips() {   const grid = document.getElementById('cat-chips')   grid.innerHTML = CATEGORIES.map(c => `     <div       class="cat-chip ${selectedCat === c.value ? 'selected' : ''}"       id="chip-${c.value}"       onclick="selectCat('${c.value}')"     >       <i class="ti ${c.icon}"></i>       <span>${c.label}</span>     </div>   `).join('') }  window.selectCat = function(val) {   selectedCat = val   // Update chip UI   document.querySelectorAll('.cat-chip').forEach(el => el.classList.remove('selected'))   const chip = document.getElementById('chip-' + val)   if (chip) chip.classList.add('selected') }  // ── Char counter ────────────────────────────────────────────── window.updateCharCount = function(inputId, countId, max) {   const len = document.getElementById(inputId).value.length   const el  = document.getElementById(countId)   el.textContent = len + ' / ' + max   el.classList.toggle('warn', len > max * 0.9) }  // ── Photo handling ──────────────────────────────────────────── window.handlePhotos = function(event) {   const files = Array.from(event.target.files)   const remaining = 5 - photoFiles.length    if (!files.length) return   if (remaining <= 0) {     toast('Maximum 5 photos allowed', 'error')     return   }    const toAdd = files.slice(0, remaining)   if (files.length > remaining) {     toast(`Only adding ${remaining} more photo(s) — limit is 5`, 'info')   }    toAdd.forEach(file => {     if (!file.type.startsWith('image/')) {       toast('Only image files are supported', 'error')       return     }     photoFiles.push(file)      // Preview     const reader = new FileReader()     reader.onload = e => {       const strip = document.getElementById('photo-strip')       const addBtn = strip.querySelector('.photo-add')        const img = document.createElement('img')       img.className = 'photo-thumb'       img.src = e.target.result       img.title = file.name        // Long-press to remove       img.onclick = () => removePhoto(file, img)       img.title = 'Tap to remove'        strip.insertBefore(img, addBtn)     }     reader.readAsDataURL(file)   })    // Hide add button when at limit   const addBtn = document.querySelector('.photo-add')   if (addBtn) addBtn.style.display = photoFiles.length >= 5 ? 'none' : 'flex'    // Clear input so same file can be re-selected   event.target.value = '' }  function removePhoto(file, imgEl) {   photoFiles = photoFiles.filter(f => f !== file)   imgEl.remove()   const addBtn = document.querySelector('.photo-add')   if (addBtn) addBtn.style.display = 'flex' }  // ── GPS location ────────────────────────────────────────────── window.useGPS = function() {   if (!navigator.geolocation) {     toast('GPS not available on this device', 'error')     return   }    const icon  = document.getElementById('gps-icon')   const label = document.getElementById('gps-label')   icon.className  = 'ti ti-loader'   label.textContent = 'Getting your location...'    navigator.geolocation.getCurrentPosition(     pos => {       const lat = pos.coords.latitude.toFixed(6)       const lng = pos.coords.longitude.toFixed(6)        document.getElementById('lat').value = lat       document.getElementById('lng').value = lng       document.getElementById('gps-coords').textContent =         `${lat}, ${lng} (accuracy ±${Math.round(pos.coords.accuracy)}m)`        document.getElementById('gps-result').style.display = 'block'        // Pre-fill address if empty       if (!document.getElementById('address').value.trim()) {         document.getElementById('address').value =           `GPS location (${lat}, ${lng})`       }        icon.className  = 'ti ti-current-location'       label.textContent = 'Tap to update location'       toast('Location captured!', 'success')     },     err => {       icon.className  = 'ti ti-current-location'       label.textContent = 'Tap to use my current location'       const msgs = {         1: 'Location permission denied. Please allow it in browser settings.',         2: 'Location unavailable. Enter address manually.',         3: 'Location timed out. Try again or enter address manually.',       }       toast(msgs[err.code] || 'Could not get location', 'error')     },     { timeout: 10000, enableHighAccuracy: true }   ) }  window.clearGPS = function() {   document.getElementById('lat').value = '0'   document.getElementById('lng').value = '0'   document.getElementById('gps-result').style.display = 'none' }  // ── Urgent toggle ───────────────────────────────────────────── window.toggleUrgent = function() {   isUrgent = !isUrgent   document.getElementById('urg-track').classList.toggle('on', isUrgent) }  // ── Step navigation ─────────────────────────────────────────── const STEP_LABELS = [   'Step 1 of 3 — Service details',   'Step 2 of 3 — Location',   'Step 3 of 3 — Budget & review', ] const STEP_TITLES = ['Post a job', 'Location', 'Budget & timing']  window.goStep = function(step) {   // Validate before advancing   if (step > currentStep) {     const err = validateStep(currentStep)     if (err) { toast(err, 'error'); return }   }    // Update summary when entering step 3   if (step === 3) updateSummary()    // Update UI   ;[1, 2, 3].forEach(s => {     document.getElementById('panel-' + s).classList.toggle('active', s === step)     document.getElementById('seg' + (s - 1)).classList.toggle('done', s <= step)     document.getElementById('seg' + (s - 1)).classList.toggle('current', s === step)   })    document.getElementById('step-label').textContent = STEP_LABELS[step - 1]   document.getElementById('page-title').textContent  = STEP_TITLES[step - 1]    currentStep = step   window.scrollTo({ top: 0, behavior: 'smooth' }) }  // ── Back button ─────────────────────────────────────────────── window.handleBack = function() {   if (currentStep === 1) {     go('/customer/home.html')   } else {     goStep(currentStep - 1)   } }  // ── Validation ──────────────────────────────────────────────── function validateStep(step) {   if (step === 1) {     if (!selectedCat)       return 'Please select a service category'     if (document.getElementById('title').value.trim().length < 5)       return 'Job title must be at least 5 characters'     if (document.getElementById('desc').value.trim().length < 20)       return 'Please describe the problem in more detail (minimum 20 characters)'   }   if (step === 2) {     if (!document.getElementById('address').value.trim())       return 'Please enter a service address'   }   return null  // no error }  // ── Update summary in step 3 ────────────────────────────────── function updateSummary() {   const cat   = CATEGORIES.find(c => c.value === selectedCat)   const title = document.getElementById('title').value.trim()   const addr  = document.getElementById('address').value.trim()    document.getElementById('sum-cat').textContent   = cat ? cat.label : selectedCat   document.getElementById('sum-title').textContent  = title   document.getElementById('sum-addr').textContent   = addr }  // ── Photo upload to Supabase Storage ───────────────────────── async function uploadPhotos() {   if (!photoFiles.length) return []    const urls = []   for (const file of photoFiles) {     const path = `jobs/${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`     try {       const storagePath = await uploadFile('job-photos', file, path)       urls.push(storagePath)     } catch (e) {       // Non-fatal — skip failed photo, continue       console.warn('Photo upload failed:', e.message)     }   }   return urls }  // ── Submit ──────────────────────────────────────────────────── window.doPost = async function() {   // Final validation   const err = validateStep(1) || validateStep(2)   if (err) { toast(err, 'error'); return }    const btn = document.getElementById('submit-btn')   btn.disabled = true   btn.innerHTML = '<i class="ti ti-loader"></i> Posting...'    loading(true)    try {     // 1. Upload photos (non-blocking if any fail)     if (photoFiles.length) {       toast('Uploading photos...', 'info', 2000)       photoUrls = await uploadPhotos()     }      // 2. Parse optional fields     const bminVal   = parseFloat(document.getElementById('bmin').value)     const bmaxVal   = parseFloat(document.getElementById('bmax').value)     const pstartVal = document.getElementById('pstart').value      // Budget sanity check     if (!isNaN(bminVal) && !isNaN(bmaxVal) && bmaxVal < bminVal) {       toast('Maximum budget cannot be less than minimum', 'error')       btn.disabled = false       btn.innerHTML = '<i class="ti ti-send"></i> Post job'       loading(false)       return     }      // 3. Call the create_job RPC     const job = await createJob({       category:        selectedCat,       title:           document.getElementById('title').value.trim(),       description:     document.getElementById('desc').value.trim(),       photo_urls:      photoUrls,       address:         document.getElementById('address').value.trim(),       lat:             parseFloat(document.getElementById('lat').value) || 0,       lng:             parseFloat(document.getElementById('lng').value) || 0,       budget_min:      isNaN(bminVal)   ? null : bminVal,       budget_max:      isNaN(bmaxVal)   ? null : bmaxVal,       preferred_start: pstartVal ? new Date(pstartVal).toISOString() : null,       is_urgent:       isUrgent,     })      toast('Job posted! Waiting for bids...', 'success', 2000)      // Navigate to the bids inbox for this job     setTimeout(() => go('/customer/bids.html?job=' + job.id), 1300)    } catch (e) {     toast(e.message, 'error')     btn.disabled = false     btn.innerHTML = '<i class="ti ti-send"></i> Post job'   }    loading(false) }  // ── Initialise ──────────────────────────────────────────────── ;(async () => {    await requireAuth(['customer'])    buildCategoryChips()    // Pre-select category if passed via URL (?cat=electrical)   const urlCat = new URLSearchParams(window.location.search).get('cat')   if (urlCat) {     selectedCat = urlCat     buildCategoryChips()   // rebuild with selection applied   }    // Set default datetime to tomorrow morning   const tomorrow = new Date()   tomorrow.setDate(tomorrow.getDate() + 1)   tomorrow.setHours(10, 0, 0, 0)   document.getElementById('pstart').value =     tomorrow.toISOString().slice(0, 16)  })()
+    </script>
+  </body>
+</html>
+ENDHTML echo "Lines: $(wc -l < /home/claude/innself/customer/post-job.html)"`
