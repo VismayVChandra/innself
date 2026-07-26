@@ -1,7 +1,18 @@
 import{createClient}from'https://esm.sh/@supabase/supabase-js@2'
 
-const SUPABASE_URL = 'https://rpdmvqyfmghppdxwprkp.supabase.co'
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwZG12cXlmbWdocHBkeHdwcmtwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3NTM1NDAsImV4cCI6MjA5NjMyOTU0MH0.tQaSKrGAiQqgazGqpw7bbQH7PbOjCvon-8GwSZ6Woq0'
+async function loadSupabaseConfig(){
+  try{
+    const mod=await import('./env.js')
+    return mod.default||mod
+  }catch{
+    return {}
+  }
+}
+
+const runtimeConfig=await loadSupabaseConfig()
+
+const SUPABASE_URL = runtimeConfig.SUPABASE_URL || runtimeConfig.url || 'https://rpdmvqyfmghppdxwprkp.supabase.co'
+const SUPABASE_KEY = runtimeConfig.SUPABASE_ANON_KEY || runtimeConfig.anonKey || ''
 
 export const sb = createClient(SUPABASE_URL, SUPABASE_KEY)
 
