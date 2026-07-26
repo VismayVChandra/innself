@@ -1,4 +1,4 @@
-<!doctype html>
+<!-- <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8">
@@ -106,4 +106,736 @@ import{
 })();
  addEventListener('beforeunload',()=>channel&&unsubscribe(channel));
 </script>
-</body></html>
+</body></html> -->
+cat > /home/claude/innself/customer/bids.html << 'ENDHTML'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Innself — Bids received</title>
+  <link rel="stylesheet" href="../styles.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
+  <style>
+
+    /* ── Job summary banner ── */
+    .job-banner {
+      margin: 10px 14px 0;
+      background: var(--card);
+      border: 0.5px solid var(--teal);
+      border-radius: 12px;
+      padding: 13px 14px;
+    }
+    .job-banner-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 5px;
+    }
+    .job-banner-meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .job-banner-meta span {
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ── Sort pills ── */
+    .sort-row {
+      display: flex;
+      gap: 7px;
+      padding: 10px 14px 6px;
+      overflow-x: auto;
+    }
+    .sort-pill {
+      font-size: 11px;
+      padding: 5px 13px;
+      border-radius: 20px;
+      border: 0.5px solid var(--border);
+      background: var(--card2);
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .15s;
+    }
+    .sort-pill.active {
+      background: var(--teal-l);
+      border-color: var(--teal);
+      color: var(--teal-d);
+      font-weight: 500;
+    }
+
+    /* ── Bid card ── */
+    .bid-card {
+      background: var(--card);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      overflow: hidden;
+      transition: border-color .15s;
+    }
+    .bid-card.top-pick {
+      border-color: var(--teal);
+      border-width: 1.5px;
+    }
+    .bid-card:hover { border-color: var(--teal); }
+
+    .top-pick-label {
+      background: var(--teal);
+      padding: 4px 14px;
+      font-size: 10px;
+      font-weight: 500;
+      color: #fff;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .bid-inner { padding: 12px 13px; }
+
+    /* tech row */
+    .tech-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .tech-info { display: flex; align-items: center; gap: 10px; }
+    .tech-name { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+
+    /* stars */
+    .star-row { display: flex; align-items: center; gap: 4px; }
+    .stars-filled { color: var(--amber); font-size: 12px; letter-spacing: 1px; }
+    .star-count { font-size: 11px; color: var(--muted); }
+
+    /* price block */
+    .price-block { text-align: right; flex-shrink: 0; }
+    .price-main {
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--teal-d);
+      line-height: 1;
+    }
+    .price-dur { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    /* verified badge */
+    .verified-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      color: var(--teal-d);
+      background: var(--teal-l);
+      padding: 2px 7px;
+      border-radius: 20px;
+      margin-top: 3px;
+    }
+
+    /* bid metadata row */
+    .bid-meta-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .bid-meta-item {
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* bid note */
+    .bid-note {
+      font-size: 12px;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.5;
+      padding: 9px 11px;
+      background: var(--card2);
+      border-radius: 8px;
+      margin-bottom: 11px;
+      border-left: 2px solid var(--teal);
+    }
+
+    /* action row */
+    .bid-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* jobs-done chips */
+    .stat-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      color: var(--muted);
+      background: var(--card2);
+      padding: 2px 7px;
+      border-radius: 20px;
+      margin-top: 3px;
+    }
+
+    /* ── Empty / waiting state ── */
+    .waiting-state {
+      text-align: center;
+      padding: 48px 20px;
+    }
+    .waiting-state .pulse {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--teal-l);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { transform: scale(1);   opacity: 1; }
+      50%      { transform: scale(1.1); opacity: .8; }
+    }
+    .waiting-state p { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+
+    /* ── Countdown timer ── */
+    .countdown {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: right;
+      padding: 0 14px 2px;
+    }
+    .countdown.urgent { color: var(--red); }
+
+    /* ── Confirm modal overlay ── */
+    #confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.6);
+      z-index: 200;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    #confirm-overlay.show { display: flex; }
+    .confirm-sheet {
+      background: var(--card);
+      border-radius: 18px 18px 0 0;
+      padding: 20px 18px 32px;
+      width: 100%;
+      max-width: 480px;
+      animation: slideUp .25s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+    .confirm-sheet h2 { font-size: 16px; font-weight: 500; margin-bottom: 6px; }
+    .confirm-sheet p  { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+
+    .confirm-tech-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--card2);
+      border-radius: 10px;
+      padding: 12px 13px;
+      margin-bottom: 18px;
+    }
+    .confirm-price {
+      margin-left: auto;
+      text-align: right;
+    }
+    .confirm-price .big { font-size: 18px; font-weight: 500; color: var(--teal-d); }
+    .confirm-price .small { font-size: 11px; color: var(--muted); }
+
+    .escrow-note {
+      background: var(--teal-l);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--teal-d);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.5;
+    }
+
+  </style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div></div>
+<div id="toast"></div>
+
+<!-- ── Confirm acceptance bottom sheet ── -->
+<div id="confirm-overlay" onclick="closeConfirm(event)">
+  <div class="confirm-sheet">
+    <h2>Accept this bid?</h2>
+    <p>All other bids will be automatically declined once you confirm.</p>
+
+    <div class="confirm-tech-row">
+      <div class="avatar" id="cf-init">?</div>
+      <div>
+        <div style="font-size:13px;font-weight:500" id="cf-name">—</div>
+        <div class="star-row" style="margin-top:2px">
+          <span class="stars-filled" id="cf-stars"></span>
+          <span class="star-count" id="cf-count"></span>
+        </div>
+      </div>
+      <div class="confirm-price">
+        <div class="big" id="cf-price">—</div>
+        <div class="small" id="cf-dur">—</div>
+      </div>
+    </div>
+
+    <div class="escrow-note">
+      <i class="ti ti-shield-lock" style="font-size:18px;flex-shrink:0;margin-top:1px"></i>
+      <span>
+        Your payment is held securely in escrow — it is only released to the
+        technician after you confirm the job is complete.
+      </span>
+    </div>
+
+    <button class="btn btn-primary" id="cf-confirm-btn" onclick="confirmAccept()">
+      Yes, accept bid
+    </button>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="closeConfirm()">
+      Cancel
+    </button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════ -->
+<!--  PAGE                                   -->
+<!-- ═══════════════════════════════════════ -->
+<div class="page">
+
+  <!-- ── Top bar ── -->
+  <div class="topbar">
+    <button class="back-btn" onclick="go('/customer/home.html')">
+      <i class="ti ti-arrow-left"></i>
+    </button>
+    <span class="topbar-title">Bids received</span>
+    <span class="badge badge-teal" id="bid-count-badge">0 bids</span>
+  </div>
+
+  <!-- ── Job info banner ── -->
+  <div class="job-banner" id="job-banner" style="display:none">
+    <div class="row-between">
+      <div class="job-banner-title" id="jb-title">Loading...</div>
+      <button
+        style="font-size:11px;background:none;border:none;color:var(--teal-d);cursor:pointer;padding:0"
+        onclick="cancelJob()"
+        id="cancel-btn"
+      >Cancel job</button>
+    </div>
+    <div class="job-banner-meta">
+      <span><i class="ti ti-category"></i><span id="jb-cat"></span></span>
+      <span><i class="ti ti-map-pin"></i><span id="jb-addr"></span></span>
+      <span><i class="ti ti-currency-rupee"></i><span id="jb-budget"></span></span>
+    </div>
+  </div>
+
+  <!-- ── Countdown ── -->
+  <div class="countdown" id="countdown"></div>
+
+  <!-- ── Sort pills ── -->
+  <div class="sort-row">
+    <div class="sort-pill active" id="sort-rating" onclick="setSort('rating')">
+      <i class="ti ti-star"></i> Top rated
+    </div>
+    <div class="sort-pill" id="sort-price" onclick="setSort('price')">
+      <i class="ti ti-currency-rupee"></i> Lowest price
+    </div>
+    <div class="sort-pill" id="sort-time" onclick="setSort('time')">
+      <i class="ti ti-clock"></i> Earliest
+    </div>
+  </div>
+
+  <!-- ── Bids list ── -->
+  <div style="padding:4px 14px 80px" id="bids-list">
+    <!-- Rendered by JS -->
+  </div>
+
+</div><!-- end .page -->
+
+<nav class="bottom-nav">
+  <button class="nav-item" onclick="go('/customer/home.html')">
+    <i class="ti ti-home"></i>Home
+  </button>
+  <button class="nav-item active">
+    <i class="ti ti-file-text"></i>My jobs
+  </button>
+  <button class="nav-item"><i class="ti ti-message"></i>Chat</button>
+  <button class="nav-item"><i class="ti ti-user"></i>Profile</button>
+</nav>
+
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  JAVASCRIPT                                                  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script type="module">
+
+import {
+  requireAuth,
+  getJobById,
+  getBidsForJob,
+  acceptBid,
+  cancelJob  as cancelJobRPC,
+  subscribeToBids,
+  unsubscribe,
+  toast,
+  loading,
+  fmtMoney,
+  getInitials
+} from '../supabase.js'
+
+// ── Globals ───────────────────────────────────────────────────
+const go   = url => window.location.href = url
+window.go  = go
+
+const jobId = new URLSearchParams(window.location.search).get('job')
+
+let allBids     = []         // full list from Supabase
+let sortMode    = 'rating'   // rating | price | time
+let pendingBid  = null       // bid object waiting for confirmation
+let realtimeSub = null       // Supabase Realtime subscription
+let countdownTimer = null    // setInterval handle
+
+// ── Stars renderer ────────────────────────────────────────────
+function renderStars(avg, count) {
+  const full    = Math.round(avg || 0)
+  const filled  = '★'.repeat(full)
+  const empty   = '☆'.repeat(5 - full)
+  return `
+    <span class="stars-filled">${filled}</span>
+    <span style="color:var(--hint);font-size:12px">${empty}</span>
+    <span class="star-count">${avg ? avg.toFixed(1) : '—'} (${count || 0})</span>
+  `
+}
+
+// ── Time formatter ────────────────────────────────────────────
+function fmtDate(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('en-IN', {
+    weekday: 'short', day: 'numeric', month: 'short',
+    hour: '2-digit', minute: '2-digit'
+  })
+}
+
+function timeLeft(iso) {
+  const diff = new Date(iso) - Date.now()
+  if (diff <= 0) return 'Expired'
+  const h = Math.floor(diff / 3_600_000)
+  const m = Math.floor((diff % 3_600_000) / 60_000)
+  return `${h}h ${m}m remaining`
+}
+
+// ── Countdown display ─────────────────────────────────────────
+function startCountdown(expiresAt) {
+  if (countdownTimer) clearInterval(countdownTimer)
+
+  const el = document.getElementById('countdown')
+  function tick() {
+    const diff = new Date(expiresAt) - Date.now()
+    if (diff <= 0) {
+      el.textContent = 'This job has expired'
+      el.classList.add('urgent')
+      clearInterval(countdownTimer)
+      return
+    }
+    const h = Math.floor(diff / 3_600_000)
+    const m = Math.floor((diff % 3_600_000) / 60_000)
+    el.textContent = `Job expires in ${h}h ${m}m — accept a bid before then`
+    el.classList.toggle('urgent', diff < 2 * 3_600_000)   // red if < 2 hrs
+  }
+  tick()
+  countdownTimer = setInterval(tick, 30_000)
+}
+
+// ── Sort ──────────────────────────────────────────────────────
+window.setSort = function(mode) {
+  sortMode = mode
+  ;['rating', 'price', 'time'].forEach(m => {
+    document.getElementById('sort-' + m).classList.toggle('active', m === mode)
+  })
+  renderBids()
+}
+
+function sortedBids() {
+  return [...allBids].sort((a, b) => {
+    if (sortMode === 'price') return a.price - b.price
+    if (sortMode === 'time')  return new Date(a.proposed_start) - new Date(b.proposed_start)
+    // rating (default) — highest first
+    const ra = a.users?.rating_avg || 0
+    const rb = b.users?.rating_avg || 0
+    if (rb !== ra) return rb - ra
+    return (b.users?.rating_count || 0) - (a.users?.rating_count || 0)
+  })
+}
+
+// ── Render bid cards ──────────────────────────────────────────
+function renderBids() {
+  const sorted = sortedBids()
+  const el     = document.getElementById('bids-list')
+
+  // Update badge
+  document.getElementById('bid-count-badge').textContent =
+    allBids.length + (allBids.length === 1 ? ' bid' : ' bids')
+
+  // Empty / waiting state
+  if (!sorted.length) {
+    el.innerHTML = `
+      <div class="waiting-state">
+        <div class="pulse">
+          <i class="ti ti-bell" style="font-size:26px;color:var(--teal-d)"></i>
+        </div>
+        <p style="font-weight:500;color:var(--text)">Waiting for bids</p>
+        <p>Nearby technicians have been notified.<br>
+           You'll see their bids here as they arrive.</p>
+        <p style="font-size:11px;color:var(--hint);margin-top:16px">
+          Usually within 15–60 minutes
+        </p>
+      </div>`
+    return
+  }
+
+  el.innerHTML = sorted.map((bid, idx) => {
+    const user    = bid.users || {}
+    const name    = user.name || 'Technician'
+    const init    = getInitials(name)
+    const isTop   = idx === 0 && sortMode === 'rating'
+    const dur     = bid.estimated_duration_hrs
+      ? bid.estimated_duration_hrs + 'h estimated'
+      : 'Duration not specified'
+    const start   = fmtDate(bid.proposed_start)
+    const expiring = new Date(bid.expires_at) - Date.now() < 3 * 3_600_000
+
+    return `
+    <div class="bid-card ${isTop ? 'top-pick' : ''}">
+
+      ${isTop ? '<div class="top-pick-label">⭐ Top rated technician</div>' : ''}
+
+      <div class="bid-inner">
+
+        <!-- Tech info + price -->
+        <div class="tech-row">
+          <div class="tech-info">
+            <div class="avatar">${init}</div>
+            <div>
+              <div class="tech-name">${name}</div>
+              <div class="star-row">
+                ${renderStars(user.rating_avg, user.rating_count)}
+              </div>
+              <div style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap">
+                ${user.is_verified ? '<span class="verified-badge"><i class="ti ti-shield-check" style="font-size:11px"></i> Verified</span>' : ''}
+                ${user.rating_count > 0 ? `<span class="stat-chip"><i class="ti ti-briefcase" style="font-size:10px"></i> ${user.rating_count} jobs</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="price-block">
+            <div class="price-main">${fmtMoney(bid.price)}</div>
+            <div class="price-dur">${bid.estimated_duration_hrs ? bid.estimated_duration_hrs + 'h est.' : ''}</div>
+          </div>
+        </div>
+
+        <!-- When + duration -->
+        <div class="bid-meta-row">
+          <span class="bid-meta-item">
+            <i class="ti ti-calendar"></i> ${start}
+          </span>
+          ${expiring ? `<span class="bid-meta-item" style="color:var(--red)"><i class="ti ti-clock"></i> ${timeLeft(bid.expires_at)}</span>` : ''}
+        </div>
+
+        <!-- Technician's note -->
+        ${bid.note ? `<div class="bid-note">"${bid.note}"</div>` : ''}
+
+        <!-- Action buttons -->
+        <div class="bid-actions">
+          <button
+            class="btn btn-primary"
+            style="flex:2"
+            onclick="openConfirm('${bid.id}')"
+          >
+            Accept bid
+          </button>
+          <button
+            class="btn btn-secondary btn-sm"
+            style="flex:1"
+            onclick="viewProfile('${bid.technician_id}')"
+          >
+            <i class="ti ti-user"></i> Profile
+          </button>
+        </div>
+
+      </div>
+    </div>`
+  }).join('')
+}
+
+// ── Confirm sheet ─────────────────────────────────────────────
+window.openConfirm = function(bidId) {
+  const bid  = allBids.find(b => b.id === bidId)
+  if (!bid) return
+
+  pendingBid = bid
+  const user = bid.users || {}
+  const name = user.name || 'Technician'
+
+  document.getElementById('cf-init').textContent  = getInitials(name)
+  document.getElementById('cf-name').textContent  = name
+  document.getElementById('cf-stars').textContent = '★'.repeat(Math.round(user.rating_avg || 0))
+  document.getElementById('cf-count').textContent = `${(user.rating_avg || 0).toFixed(1)} (${user.rating_count || 0} jobs)`
+  document.getElementById('cf-price').textContent = fmtMoney(bid.price)
+  document.getElementById('cf-dur').textContent   = bid.estimated_duration_hrs
+    ? bid.estimated_duration_hrs + 'h estimated'
+    : 'Duration not specified'
+
+  document.getElementById('confirm-overlay').classList.add('show')
+}
+
+window.closeConfirm = function(event) {
+  // Close if clicking the backdrop or explicitly called
+  if (event && event.target !== document.getElementById('confirm-overlay')) return
+  document.getElementById('confirm-overlay').classList.remove('show')
+  pendingBid = null
+}
+
+window.confirmAccept = async function() {
+  if (!pendingBid) return
+
+  const btn = document.getElementById('cf-confirm-btn')
+  btn.disabled    = true
+  btn.textContent = 'Accepting...'
+
+  loading(true)
+  try {
+    // ── This calls your accept_bid RPC ──
+    // Which atomically:
+    //  1. Sets this bid → accepted
+    //  2. Sets all other bids → rejected
+    //  3. Sets job.status → assigned
+    //  4. Notifies the technician
+    await acceptBid(pendingBid.id)
+
+    // Stop listening for new bids
+    if (realtimeSub) unsubscribe(realtimeSub)
+    if (countdownTimer) clearInterval(countdownTimer)
+
+    toast('Bid accepted! Redirecting to job tracking...', 'success', 2500)
+
+    // Navigate to tracking screen
+    setTimeout(() => go('/customer/tracking.html?job=' + jobId), 1500)
+
+  } catch (err) {
+    toast(err.message, 'error')
+    btn.disabled    = false
+    btn.textContent = 'Yes, accept bid'
+  }
+  loading(false)
+}
+
+// ── View technician profile (future) ─────────────────────────
+window.viewProfile = function(techId) {
+  // Placeholder — extend later with /customer/tech-profile.html?id=xxx
+  toast('Technician profiles coming soon', 'info')
+}
+
+// ── Cancel job ────────────────────────────────────────────────
+window.cancelJob = async function() {
+  if (!confirm('Cancel this job? All bids will be discarded.')) return
+  loading(true)
+  try {
+    await cancelJobRPC(jobId)
+    toast('Job cancelled', 'success')
+    setTimeout(() => go('/customer/home.html'), 1200)
+  } catch (err) {
+    toast(err.message, 'error')
+  }
+  loading(false)
+}
+
+// ── Main ──────────────────────────────────────────────────────
+;(async () => {
+
+  if (!jobId) { go('/customer/home.html'); return }
+
+  const user = await requireAuth(['customer'])
+  if (!user) return
+
+  loading(true)
+
+  try {
+    // 1. Load job details and current bids in parallel
+    const [job, bids] = await Promise.all([
+      getJobById(jobId),
+      getBidsForJob(jobId),
+    ])
+
+    // If job is already assigned, redirect to tracking
+    if (['assigned', 'en_route', 'in_progress', 'completed', 'confirmed'].includes(job.status)) {
+      go('/customer/tracking.html?job=' + jobId)
+      return
+    }
+
+    // 2. Render job banner
+    const banner = document.getElementById('job-banner')
+    banner.style.display = 'block'
+    document.getElementById('jb-title').textContent  = job.title
+    document.getElementById('jb-cat').textContent    = (job.category || '').replace(/_/g, ' ')
+    document.getElementById('jb-addr').textContent   = job.location_address || '—'
+    document.getElementById('jb-budget').textContent = job.budget_min || job.budget_max
+      ? `${fmtMoney(job.budget_min)} – ${fmtMoney(job.budget_max)}`
+      : 'No budget set'
+
+    // Hide cancel button if bids already exist
+    if (bids.length > 0) {
+      document.getElementById('cancel-btn').style.display = 'none'
+    }
+
+    // 3. Start countdown timer
+    if (job.expires_at) startCountdown(job.expires_at)
+
+    // 4. Render initial bids
+    allBids = bids
+    renderBids()
+
+    // 5. Subscribe to new bids in real time
+    // Every time a technician submits a new bid, it appears instantly
+    realtimeSub = subscribeToBids(jobId, newBid => {
+      // Avoid duplicates
+      if (allBids.some(b => b.id === newBid.id)) return
+
+      allBids = [newBid, ...allBids]
+      renderBids()
+
+      // Hide cancel button once first bid arrives
+      document.getElementById('cancel-btn').style.display = 'none'
+
+      // Subtle notification
+      toast('New bid received!', 'success', 2000)
+    })
+
+  } catch (err) {
+    toast(err.message, 'error')
+  }
+
+  loading(false)
+
+})()
+
+</script>
+</body>
+</html>
+ENDHTML
+
+echo "Lines: $(wc -l < /home/claude/innself/customer/bids.html)"
