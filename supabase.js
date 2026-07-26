@@ -2,10 +2,16 @@ import{createClient}from'https://esm.sh/@supabase/supabase-js@2'
 
 async function loadSupabaseConfig(){
   try{
-    const mod=await import('./env.js')
-    return mod.default||mod
+    const res=await fetch('/api/config',{cache:'no-store'})
+    if(!res.ok)throw new Error('config endpoint unavailable')
+    return await res.json()
   }catch{
-    return {}
+    try{
+      const mod=await import('./env.js')
+      return mod.default||mod
+    }catch{
+      return {}
+    }
   }
 }
 
